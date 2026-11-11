@@ -17,7 +17,9 @@ export type No =
   /** escava as peças de `nos` na `base`, com borda suave */
   | { t: 'cava'; k: number; base: No; nos: No[] }
   /** estreita a peça em direção ao colo: abaixo de y0 a largura cai para `min` */
-  | { t: 'colo'; y0: number; y1: number; min: number; no: No; /** estreita só no sentido mésio-distal */ soX?: boolean }
+  | { t: 'colo'; y0: number; y1: number; min: number; no: No; /** estreita só no sentido mésio-distal */ soX?: boolean; /** estreita só no sentido vestíbulo-lingual */ soZ?: boolean }
+  /** sulcos rasos na face vestibular: afundam a superfície sem escavar uma fenda */
+  | { t: 'relevo'; no: No; sulcos: { x: number; larg: number; prof: number; y0: number; y1: number }[] }
   /** curva a peça no eixo x conforme desce (raízes) */
   | { t: 'dobra'; forca: number; altura: number; no: No }
   /** multiplica as coordenadas antes de medir: valores menores que 1 alargam a peça */
@@ -38,6 +40,9 @@ export const cava = (k: number, base: No, ...nos: No[]): No => ({ t: 'cava', k, 
 export const colo = (y0: number, y1: number, min: number, no: No): No => ({ t: 'colo', y0, y1, min, no });
 /** como o colo, mas só na largura mésio-distal: a coroa dos anteriores é mais larga na borda incisal que no colo */
 export const afila = (y0: number, y1: number, min: number, no: No): No => ({ t: 'colo', y0, y1, min, no, soX: true });
+/** como o colo, mas só na espessura vestíbulo-lingual; com y0 acima de y1 a peça afina para cima, em cunha */
+export const cunha = (y0: number, y1: number, min: number, no: No): No => ({ t: 'colo', y0, y1, min, no, soZ: true });
+export const relevo = (no: No, ...sulcos: { x: number; larg: number; prof: number; y0: number; y1: number }[]): No => ({ t: 'relevo', no, sulcos });
 export const dobra = (forca: number, altura: number, no: No): No => ({ t: 'dobra', forca, altura, no });
 export const escala = (s: V, no: No): No => ({ t: 'escala', s, no });
 export const cisalha = (kx: number, kz: number, y0: number, no: No): No => ({ t: 'cisalha', kx, kz, y0, no });
@@ -103,7 +108,13 @@ export function avalia(no: No, p: V): number {
     }
     case 'colo': {
       const s = no.min + (1 - no.min) * degrau(no.y0, no.y1, p[1]);
-      return avalia(no.no, [p[0] / s, p[1], no.soX ? p[2] : p[2] / s]) * s;
+      return avalia(no.no, [no.soZ ? p[0] : p[0] / s, p[1], no.soX ? p[2] : p[2] / s]) * s;
+    }
+    case 'relevo': {
+      let d = avalia(no.no, p);
+      const frente = degrau(0, 0.08, p[2]);
+      for (const s of no.sulcos) d += s.prof * Math.exp(-(((p[0] - s.x) / s.larg) ** 2)) * degrau(s.y0, s.y1, p[1]) * frente;
+      return d;
     }
     case 'dobra': {
       const t = limita(-p[1] / no.altura, 0, 1);
@@ -158,7 +169,23 @@ export function emite(no: No, nome: string): string {
       }
       case 'colo': {
         const dentro = expr(n.no, 'q');
-        return `${nova(`  float s = mix(${f(n.min)}, 1.0, smoothstep(${f(n.y0)}, ${f(n.y1)}, p.y));\n  vec3 q = p; ${n.soX ? 'q.x' : 'q.xz'} /= s;\n  return ${dentro} * s;`)}(${pt})`;
+        /* a rampa é escrita à mão porque smoothstep não aceita y0 maior que y1 (a cunha usa) */
+        const linhas = [
+          `  float t = clamp((p.y - ${f(n.y0)}) / ${f(n.y1 - n.y0)}, 0.0, 1.0);`,
+          `  float s = mix(${f(n.min)}, 1.0, t * t * (3.0 - 2.0 * t));`,
+          `  vec3 q = p; ${n.soX ? 'q.x' : n.soZ ? 'q.z' : 'q.xz'} /= s;`,
+          `  return ${dentro} * s;`,
+        ];
+        return `${nova(linhas.join('\n'))}(${pt})`;
+      }
+      case 'relevo': {
+        const linhas = [
+          `  float d = ${expr(n.no, 'p')};`,
+          '  float frente = smoothstep(0.0, 0.08, p.z);',
+          ...n.sulcos.map((s) => `  { float u = (p.x - ${f(s.x)}) / ${f(s.larg)}; d += ${f(s.prof)} * exp(-u * u) * smoothstep(${f(s.y0)}, ${f(s.y1)}, p.y) * frente; }`),
+          '  return d;',
+        ];
+        return `${nova(linhas.join('\n'))}(${pt})`;
       }
       case 'dobra': {
         const dentro = expr(n.no, 'q');

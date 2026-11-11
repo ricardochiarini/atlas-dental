@@ -7,7 +7,7 @@ import { anterior, type Anterior } from './anterior';
 const IC_S: Anterior = {
   fdi: 21, arco: 'superior', canino: false,
   T: 1.08, W: 0.42, E: 0.34, distal: 0.1,
-  raiz: { fim: [0, -1.22, 0], r1: 0.3, r2: 0.05, achata: 1 },
+  raiz: { fim: [0, -1.22, 0], r1: 0.3, r2: 0.05, achata: 1, triangular: true },
   curva: 0.05,
   textos: {
     'face-v': 'Voltada para o lábio. É a maior face vestibular dos incisivos: trapezoidal, quase plana no terço incisal e convexa no cervical.',

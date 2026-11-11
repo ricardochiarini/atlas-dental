@@ -8,7 +8,7 @@
    em revisão pelo autor. */
 import type { Dente, Estrutura, V } from '../atlas';
 import type { Modelo } from '../modelo';
-import { afila, caixa, capsula, cava, cisalha, cone, dobra, elipse, escala, esfera, une, type No } from '../no';
+import { afila, caixa, cava, cisalha, cone, cunha, dobra, elipse, escala, esfera, relevo, une, type No } from '../no';
 
 export interface Anterior {
   fdi: number;
@@ -22,7 +22,8 @@ export interface Anterior {
   distal: number;
   /** fosseta lingual (forame cego), acima do cíngulo */
   forameCego?: boolean;
-  raiz: { fim: V; r1: number; r2: number; achata: number };
+  /** `triangular`: secção triangular arredondada, com a base para vestibular */
+  raiz: { fim: V; r1: number; r2: number; achata: number; triangular?: boolean };
   curva: number;
   inclina?: [number, number];
   textos: Record<'face-v' | 'face-l' | 'incisal' | 'cingulo' | 'fossa' | 'raiz' | 'camara' | 'canal' | 'contato-m' | 'contato-d', string>;
@@ -57,17 +58,27 @@ export function anterior(p: Anterior): Dente {
     /* fossa lingual, entre as cristas marginais; abaixo dela fica o cíngulo */
     const escavada = cava(0.06, aparada, elipse([0, 0.62 * T, -E], [W * 0.72, 0.3 * T, E * 0.62]));
     const comCingulo = une(0.09, escavada, esfera([0, 0.2 * T, -E * 0.55], E * 0.55));
-    /* sulcos de desenvolvimento na face vestibular, separando os três lobos */
-    const sulcos = [-1, 1].map((s) => capsula([s * W * 0.3, 0.93 * T, 0.6 * E + 0.025], [s * W * 0.3, 0.6 * T, 0.89 * E + 0.025], 0.03));
-    coroa = cava(0.04, comCingulo, ...sulcos, ...(p.forameCego ? [esfera([0, 0.37 * T, -E * 0.9], 0.035)] : []));
+    const comFosseta = p.forameCego ? cava(0.04, comCingulo, esfera([0, 0.37 * T, -E * 0.9], 0.035)) : comCingulo;
+    /* a coroa é uma cunha: espessa no terço cervical, fina na borda incisal */
+    const emCunha = cunha(T, 0.3 * T, 0.36, comFosseta);
+    /* sulcos de desenvolvimento: duas depressões rasas na face vestibular, entre os três lobos,
+       que se apagam em direção ao terço médio */
+    coroa = relevo(emCunha, ...[-1, 1].map((s) => ({ x: s * W * 0.3, larg: W * 0.13, prof: 0.011, y0: 0.42 * T, y1: 0.92 * T })));
   }
 
   const inicioRaiz: V = [0, 0.14, 0];
-  const raiz = naRaiz(cone(inicioRaiz, p.raiz.fim, p.raiz.r1, p.raiz.r2));
+  /* a raiz afila devagar até o terço médio e mais depressa no apical */
+  const corpoRaiz = (dz: number, k: number): No => {
+    const a: V = [0, inicioRaiz[1], dz];
+    const meioRaiz: V = [p.raiz.fim[0] * 0.6, inicioRaiz[1] + (p.raiz.fim[1] - inicioRaiz[1]) * 0.6, dz * 0.6];
+    const rm = (p.raiz.r2 + (p.raiz.r1 - p.raiz.r2) * 0.56) * k;
+    return une(0.18, cone(a, meioRaiz, p.raiz.r1 * k, rm), cone(meioRaiz, p.raiz.fim, rm, p.raiz.r2));
+  };
+  const raiz = naRaiz(p.raiz.triangular ? une(0.1, escala([0.85, 1, 1.2], corpoRaiz(0.05, 0.9)), corpoRaiz(-0.07, 0.78)) : corpoRaiz(0, 1));
 
   /* ---------- cavidade pulpar: câmara na coroa, cornos em direção à borda e um canal ---------- */
-  const cam = { c: [0, 0.36 * T, E * 0.08] as V, r: [W * 0.52, 0.28 * T, E * 0.27] as V };
-  const cornos: [V, V][] = p.canino ? [[[0, 0.48 * T, E * 0.1], [-0.03, 0.8 * T, E * 0.08]]] : [[[-W * 0.28, 0.5 * T, E * 0.16], [-W * 0.42, 0.76 * T, E * 0.18]], [[W * 0.28, 0.5 * T, E * 0.16], [W * 0.4, 0.74 * T, E * 0.18]]];
+  const cam = p.canino ? { c: [0, 0.36 * T, E * 0.08] as V, r: [W * 0.52, 0.28 * T, E * 0.27] as V } : { c: [0, 0.3 * T, E * 0.04] as V, r: [W * 0.5, 0.2 * T, E * 0.17] as V };
+  const cornos: [V, V][] = p.canino ? [[[0, 0.48 * T, E * 0.1], [-0.03, 0.8 * T, E * 0.08]]] : [[[-W * 0.3, 0.4 * T, E * 0.06], [-W * 0.5, 0.76 * T, E * 0.08]], [[W * 0.3, 0.4 * T, E * 0.06], [W * 0.47, 0.73 * T, E * 0.08]]];
   const fimCanal: V = [p.raiz.fim[0], p.raiz.fim[1] - p.raiz.r2 + 0.01, 0];
   const polpa = une(0.05, inclinada(une(0.05, elipse(cam.c, cam.r), ...cornos.map(([a, b]) => cone(a, b, 0.03, 0.012)))), naRaiz(cone([0, 0.13, 0], fimCanal, 0.05, 0.011)));
 
@@ -184,7 +195,7 @@ export function anterior(p: Anterior): Dente {
     forma: une(0.1, inclinada(coroa), raiz),
     polpa,
     jac: { base: 0.07, onda: 0.07 },
-    esmalte: { base: 0.06, extra: 0.035, y0: 0.5 * T, y1: 0.95 * T, faixa: 0.28 },
+    esmalte: { base: 0.06, extra: p.canino ? 0.035 : 0.008, y0: 0.5 * T, y1: 0.95 * T, faixa: 0.28 },
     cemento: 0.022,
     inclina: { x: incX, z: incZ, y0: Y0 },
     curva: { forca: p.curva, altura: ALTURA },
