@@ -224,7 +224,7 @@ export function molarInferior(p: MolarInferior): Dente {
     cemento: 0.022,
     inclina: { x: incX, z: incZ, y0: Y0 },
     curva: { forca: p.curva, altura: ALTURA },
-    regioes: { topo: Math.max(...p.cuspides.map((c) => c.c[1] + c.r)), apice: Math.min(p.raizes.mesial.b[1], p.raizes.distal.b[1]) - 0.04, cuspides: p.cuspides.map((c) => ({ nome: c.nome, c: ((v: V): V => { const h = Math.max(v[1] - Y0, 0); return [v[0] + incX * h, v[1], v[2] + incZ * h]; })(c.c) })) },
+    regioes: { topo: Math.max(...p.cuspides.map((c) => c.c[1] + c.r)), apice: Math.min(p.raizes.mesial.b[1], p.raizes.distal.b[1]) - 0.04, cuspides: p.cuspides.map((c) => ({ nome: c.nome, r: c.r, c: ((v: V): V => { const h = Math.max(v[1] - Y0, 0); return [v[0] + incX * h, v[1], v[2] + incZ * h]; })(c.c) })) },
     centro: [0, -0.26, 0],
     raio: 1.34,
     chao: -1.46,

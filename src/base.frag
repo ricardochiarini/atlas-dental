@@ -19,8 +19,10 @@ uniform int uReg;         // região da estrutura escolhida, pintada no dente: 0
                           // 3 vertente triturante, 4 face (pela direção), 5 terço da raiz, 6 face oclusal,
                           // 7 trechos (sulco, raiz), 8 em volta de pontos, 9 raiz inteira, 10 linha cervical,
                           // 11 acima de uma altura (borda incisal)
-uniform vec4 uSegA[4];    // início e raio de cada trecho
-uniform vec3 uSegB[4];
+uniform vec4 uSegA[5];    // início e raio de cada trecho
+uniform vec3 uSegB[5];
+uniform vec2 uRegY;       // faixa de altura da região, em fração da coroa (faces) ou da raiz (terços, tronco)
+uniform vec3 uEsfEsc;     // estica a área em volta dos pontos: valores menores que 1 alongam naquele eixo
 uniform int uNSeg;
 uniform vec4 uEsf[6];     // centro e raio em volta de cada ponto
 uniform int uNEsf;
@@ -147,7 +149,7 @@ vec3 tinge(vec3 p, vec3 rd, float px) {
     if (uReg != 0) {
       float m = 0.0;
       float alto = smoothstep(c + 0.36 * (uTopo - c), c + 0.5 * (uTopo - c), p.y); // metade oclusal da coroa
-      if (uReg <= 3) {
+      if (uReg <= 3 || uReg == 6) {
         float perto1 = 1e3, perto2 = 1e3;
         int qual = 0;
         for (int i = uZero; i < uNCusp; i++) {
@@ -162,24 +164,25 @@ vec3 tinge(vec3 p, vec3 rd, float px) {
           float cz = uCusp[qual].z;
           float fora = smoothstep(-0.012, 0.012, sign(cz) * (p.z - cz));
           // a lisa olha para a face livre; a triturante, para cima, dentro da face oclusal
-          m = alto * (uReg == 2 ? fora * smoothstep(0.05, 0.4, sign(cz) * n.z) : (1.0 - fora) * smoothstep(0.0, 0.35, n.y));
+          float dentro = (1.0 - fora) * smoothstep(0.0, 0.35, n.y);
+          if (uReg == 2) m = alto * fora * smoothstep(0.05, 0.4, sign(cz) * n.z);
+          else if (uReg == 3) m = alto * dentro * (1.0 - smoothstep(0.90, 0.985, n.y)); // a vertente é inclinada: o fundo plano dos sulcos fica de fora
+          else m = alto * dentro; // face oclusal: tudo o que fica por dentro dos vértices das cúspides
         }
       } else if (uReg == 4) {
-        m = naCoroa * smoothstep(0.30, 0.62, dot(n, uRegN));
-      } else if (uReg == 6) {
-        m = alto * smoothstep(0.35, 0.65, n.y);
+        float fr = (p.y - c) / max(uTopo - c, 0.01);
+        m = naCoroa * smoothstep(0.30, 0.62, dot(n, uRegN)) * smoothstep(uRegY.x - 0.05, uRegY.x + 0.05, fr) * (1.0 - smoothstep(uRegY.y - 0.05, uRegY.y + 0.05, fr));
       } else if (uReg == 5) {
         // terços da raiz: três partes iguais, em linha reta, do colo ao ápice
-        float t = clamp((uColo - p.y) / max(uColo - uApice, 0.01), 0.0, 1.0) * 3.0;
-        float k = float(uRegI);
-        m = (1.0 - naCoroa) * smoothstep(k - 0.03, k + 0.03, t) * (1.0 - smoothstep(k + 0.97, k + 1.03, t));
+        float t = clamp((uColo - p.y) / max(uColo - uApice, 0.01), 0.0, 1.0);
+        m = (1.0 - naCoroa) * smoothstep(uRegY.x - 0.01, uRegY.x + 0.01, t) * (1.0 - smoothstep(uRegY.y - 0.01, uRegY.y + 0.01, t));
       } else if (uReg == 7) {
         float d = 1e3;
         for (int i = uZero; i < uNSeg; i++) d = min(d, sdCapsula(p, uSegA[i].xyz, uSegB[i], uSegA[i].w));
         m = smoothstep(0.012, -0.012, d);
       } else if (uReg == 8) {
         float d = 1e3;
-        for (int i = uZero; i < uNEsf; i++) d = min(d, distance(p, uEsf[i].xyz) - uEsf[i].w);
+        for (int i = uZero; i < uNEsf; i++) d = min(d, length((p - uEsf[i].xyz) * uEsfEsc) - uEsf[i].w);
         m = smoothstep(0.03, -0.03, d);
       } else if (uReg == 9) {
         m = 1.0 - naCoroa;

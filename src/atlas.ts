@@ -60,7 +60,7 @@ export interface Dente {
   planos: Plano[];
   /** para pintar no dente a região da estrutura escolhida: altura do topo da coroa e do ápice
       e o vértice de cada cúspide */
-  regioes?: { topo: number; apice: number; cuspides: { nome: string; c: V }[] };
+  regioes?: { topo: number; apice: number; cuspides: { nome: string; c: V; /** raio: o vértice fica em c.y + r */ r: number }[] };
   /** as estruturas dependem do modelo já calculado, para gerar amostras a partir da superfície */
   estruturas(m: import('./modelo').Modelo): Estrutura[];
 }

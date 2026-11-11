@@ -43,8 +43,10 @@ const uniformes = {
   uColo: { value: 0 },
   uCusp: { value: Array.from({ length: 5 }, () => new THREE.Vector3()) },
   uNCusp: { value: 0 },
-  uSegA: { value: Array.from({ length: 4 }, () => new THREE.Vector4()) },
-  uSegB: { value: Array.from({ length: 4 }, () => new THREE.Vector3()) },
+  uSegA: { value: Array.from({ length: 5 }, () => new THREE.Vector4()) },
+  uSegB: { value: Array.from({ length: 5 }, () => new THREE.Vector3()) },
+  uRegY: { value: new THREE.Vector2(-1, 2) },
+  uEsfEsc: { value: new THREE.Vector3(1, 1, 1) },
   uNSeg: { value: 0 },
   uEsf: { value: Array.from({ length: 6 }, () => new THREE.Vector4()) },
   uNEsf: { value: 0 },
@@ -131,6 +133,9 @@ function leCores() {
   cor('--cemento', uniformes.uCemento.value);
   cor('--fg', uniformes.uTinta.value);
   cor('--regiao', uniformes.uAcento.value);
+  /* para comparar cores sem recompilar: ?tinta=1F6FEB no endereço */
+  const teste = new URLSearchParams(location.search).get('tinta');
+  if (teste && /^[0-9a-f]{6}$/i.test(teste)) uniformes.uAcento.value.setRGB(parseInt(teste.slice(0, 2), 16) / 255, parseInt(teste.slice(2, 4), 16) / 255, parseInt(teste.slice(4, 6), 16) / 255, THREE.LinearSRGBColorSpace);
   sujo = true;
 }
 
@@ -292,41 +297,80 @@ function pintaRegiao(rot: Rotulo | null) {
   u.uApice.value = r.apice;
   u.uColo.value = def.jac.base;
   u.uNCusp.value = Math.min(r.cuspides.length, 5);
-  r.cuspides.slice(0, 5).forEach((c, i) => u.uCusp.value[i].set(c.c[0], c.c[1], c.c[2]));
-  const face = (x: number, z: number) => { u.uReg.value = 4; u.uRegN.value.set(x, 0, z); };
-  const qual = r.cuspides.findIndex((c) => c.nome === e.nome);
-  if (e.id === 'face-v') face(0, 1);
-  else if (e.id === 'face-l') face(0, -1);
-  else if (e.id === 'face-m') face(-def.lado, 0);
-  else if (e.id === 'face-d') face(def.lado, 0);
-  else if (e.id === 'face-o') u.uReg.value = 6;
-  else if (e.id === 'vert-l' && r.cuspides.length) u.uReg.value = 2;
-  else if (e.id === 'vert-t' && r.cuspides.length) u.uReg.value = 3;
-  else if (e.id.startsWith('terco-')) { u.uReg.value = 5; u.uRegI.value = ['terco-c', 'terco-m', 'terco-a'].indexOf(e.id); }
-  else if (qual >= 0 && qual < 5) { u.uReg.value = 1; u.uRegI.value = qual; }
-  else if (e.id === 'raiz') u.uReg.value = 9;
-  else if (e.id === 'cervical') u.uReg.value = 10;
-  else if (e.id === 'borda') { u.uReg.value = 11; u.uRegN.value.set(r.topo - 0.09, 0, 0); }
-  else if (e.segs?.length) {
-    /* um sulco ou uma raiz: o trecho inteiro */
+  r.cuspides.slice(0, 5).forEach((c, k) => u.uCusp.value[k].set(c.c[0], c.c[1], c.c[2]));
+  u.uRegY.value.set(-1, 2);
+  u.uEsfEsc.value.set(1, 1, 1);
+
+  /* os pontos das fichas estão no dente reto: aqui ganham a inclinação da coroa e a curva da raiz */
+  const noDente = (p: V) => modelo.desdobra(modelo.inclina(p));
+  const face = (x: number, z: number, y0 = -1, y1 = 2) => { u.uReg.value = 4; u.uRegN.value.set(x, 0, z); u.uRegY.value.set(y0, y1); };
+  const raiz = (t0: number, t1: number) => { u.uReg.value = 5; u.uRegY.value.set(t0, t1); };
+  const trechos = (segs: [V, V, number][]) => {
     u.uReg.value = 7;
-    u.uNSeg.value = Math.min(e.segs.length, 4);
-    e.segs.slice(0, 4).forEach(([a, b, raio], i) => { u.uSegA.value[i].set(a[0], a[1], a[2], raio); u.uSegB.value[i].set(b[0], b[1], b[2]); });
-  } else if (rot.ancoras.length) {
-    /* as demais estruturas externas: a área em volta dos pontos em que ela foi marcada */
-    u.uReg.value = 8;
+    u.uNSeg.value = Math.min(segs.length, 5);
+    segs.slice(0, 5).forEach(([a, b, raio], k) => { const A = noDente(a), B = noDente(b); u.uSegA.value[k].set(A[0], A[1], A[2], raio); u.uSegB.value[k].set(B[0], B[1], B[2]); });
+  };
+  /* área em volta dos pontos em que a estrutura foi marcada; esc alonga a área num eixo */
+  const emVolta = (raio: number, esc: V = [1, 1, 1], juntos = true) => {
     const pts = rot.ancoras.map((a) => a.p);
+    if (!pts.length) return;
+    u.uReg.value = 8;
+    u.uEsfEsc.value.set(esc[0], esc[1], esc[2]);
     const meio: V = [0, 1, 2].map((k) => pts.reduce((s, p) => s + p[k], 0) / pts.length) as V;
     const longe = Math.max(...pts.map((p) => Math.hypot(p[0] - meio[0], p[1] - meio[1], p[2] - meio[2])));
-    if (longe < 0.3) {
+    if (juntos && longe < 0.3) {
       /* os pontos são a mesma estrutura vista de lados diferentes: uma área só, em volta do meio deles */
       u.uNEsf.value = 1;
-      u.uEsf.value[0].set(meio[0], meio[1], meio[2], Math.max(0.1, longe + 0.06));
+      u.uEsf.value[0].set(meio[0], meio[1], meio[2], Math.max(raio, longe + 0.05));
     } else {
       u.uNEsf.value = Math.min(pts.length, 6);
-      pts.slice(0, 6).forEach((p, k) => u.uEsf.value[k].set(p[0], p[1], p[2], 0.115));
+      pts.slice(0, 6).forEach((p, k) => u.uEsf.value[k].set(p[0], p[1], p[2], raio));
     }
+  };
+
+  const id = e.id;
+  const qual = r.cuspides.findIndex((c) => c.nome === e.nome);
+  const anterior = !!def.incisal;
+  if (id === 'face-v') face(0, 1);
+  else if (id === 'face-l') face(0, -1);
+  else if (id === 'face-m') face(-def.lado, 0);
+  else if (id === 'face-d') face(def.lado, 0);
+  else if (id === 'face-o') u.uReg.value = 6;
+  /* bossas: a maior convexidade da face, uma faixa e não um ponto */
+  else if (id === 'bossa-v') face(0, 1, 0.02, 0.4);
+  else if (id === 'bossa-l') face(0, -1, 0.25, 0.65);
+  else if (id === 'vert-l' && r.cuspides.length) u.uReg.value = 2;
+  else if (id === 'vert-t' && r.cuspides.length) u.uReg.value = 3;
+  else if (id === 'terco-c') raiz(0, 1 / 3);
+  else if (id === 'terco-m') raiz(1 / 3, 2 / 3);
+  else if (id === 'terco-a') raiz(2 / 3, 1.01);
+  else if (id === 'tronco') {
+    /* do colo até a altura da furca */
+    const furca = rotulos.find((x) => x.e.id === 'furca');
+    const yF = furca?.ancoras.length ? Math.max(...furca.ancoras.map((a) => a.p[1])) : def.jac.base - 0.3;
+    raiz(0, Math.min(0.6, Math.max(0.08, (def.jac.base - yF) / (def.jac.base - r.apice))));
   }
+  /* o vértice do canino é a ponta, não a coroa toda: uma área pequena em volta dela */
+  else if (id === 'vertice' && r.cuspides.length) {
+    const c = r.cuspides[0];
+    u.uReg.value = 8;
+    u.uNEsf.value = 1;
+    u.uEsf.value[0].set(c.c[0], c.c[1] + c.r * 0.6, c.c[2], 0.13);
+  }
+  else if (qual >= 0 && qual < 5) { u.uReg.value = 1; u.uRegI.value = qual; }
+  else if (id === 'raiz') u.uReg.value = 9;
+  else if (id === 'cervical') u.uReg.value = 10;
+  else if (id === 'borda') { u.uReg.value = 11; u.uRegN.value.set(r.topo - 0.09, 0, 0); }
+  /* crista triangular: do vértice de cada cúspide em direção ao centro da face oclusal */
+  else if (id === 'crista-tri' && r.cuspides.length) trechos(r.cuspides.slice(0, 5).map((c): [V, V, number] => [[c.c[0], c.c[1] + c.r * 0.85, c.c[2]], [c.c[0] * 0.5, c.c[1] + c.r * 0.25, c.c[2] * 0.2], 0.07]));
+  else if (e.segs?.length) trechos(e.segs);
+  /* cristas marginais: nos posteriores correm de vestibular a lingual; nos anteriores, do colo à borda */
+  else if (id === 'crista-m' || id === 'crista-d') emVolta(0.085, anterior ? [1, 0.3, 1] : [1, 1, 0.33]);
+  else if (id === 'crista-v' || id === 'crista-l') emVolta(0.075, [1, 0.2, 1]);
+  else if (id === 'sulcos-des') emVolta(0.04, [1, 0.15, 1], false);
+  else if (id === 'fossa') emVolta(0.17, [1, 0.75, 1]);
+  else if (id.startsWith('contato-') || id.startsWith('angulo-') || id === 'furca' || id === 'forame' || id === 'forame-cego') emVolta(0.08);
+  else emVolta(0.1);
 }
 
 function fichaPadrao() {
