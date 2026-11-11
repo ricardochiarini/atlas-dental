@@ -10,7 +10,7 @@
   --bg: #E8E0CF; --fg: #23251C; --ac: #9A4326; --mut: #5A5D4B; --fio: #CFC6B0;
   --esmalte: #FBF8EF; --dentina: #E6CB98; --polpa: #B4502F; --cemento: #B98F58;
   /* tinta da estrutura escolhida, pintada sobre o dente: viva, para se destacar do esmalte e do cemento */
-  --regiao: #F0401A;
+  --regiao: #1F6FEB;
   --f-s: "Instrument Serif", Georgia, serif;
   --f-ui: "Archivo", system-ui, sans-serif;
   --ease: cubic-bezier(.23, 1, .32, 1);
