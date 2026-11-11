@@ -444,6 +444,7 @@ const odontograma = criaOdontograma($('#odontograma'), (fdi) => {
 });
 /* a mesma arcada, em miniatura, ao lado do nome: mostra onde o dente fica na boca */
 const mini = criaOdontograma($('#mini'), () => {}, true);
+const noPainel = criaOdontograma($('#arcada-painel'), (fdi) => { location.hash = String(fdi); });
 $('#abrir-arcada').addEventListener('click', () => dialogo.showModal());
 $('#fechar-arcada').addEventListener('click', () => dialogo.close());
 
@@ -475,6 +476,7 @@ function abreDente(fdi: number) {
   document.title = `${fdi} · ${reg.nome} ${reg.onde} · Atlas dental · Ricardo Chiarini`;
   odontograma.marca(fdi);
   mini.marca(fdi);
+  noPainel.marca(fdi);
 
   montaAtlas();
   montaControles();
