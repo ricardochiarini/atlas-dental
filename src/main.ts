@@ -195,7 +195,7 @@ function montaAtlas() {
     if (!doGrupo.length) continue;
     const cab = document.createElement('button');
     cab.type = 'button';
-    cab.className = 'grupo hud';
+    cab.className = 'grupo';
     cab.dataset.grupo = grupo;
     cab.setAttribute('aria-pressed', 'true');
     cab.title = 'Mostrar ou esconder os nomes deste grupo no dente';
@@ -229,9 +229,8 @@ function pontoNoCorte(e: Estrutura, n: V, h: number): V | null {
 }
 
 function fichaPadrao() {
-  $('#ficha-grupo').textContent = 'Como usar';
-  $('#ficha-nome').textContent = 'Gire, corte e toque nos nomes';
-  $('#ficha-texto').textContent = 'Arraste o dente para girar. Escolha um plano de corte para ver o interior. Cada nome leva à descrição da estrutura.';
+  $('#ficha-nome').textContent = '';
+  $('#ficha-texto').textContent = 'Arraste o dente para girar, escolha um corte para ver o interior e toque num nome para ler a descrição.';
 }
 
 function seleciona(id: string, moverCamera: boolean) {
@@ -239,7 +238,6 @@ function seleciona(id: string, moverCamera: boolean) {
   if (!r) return;
   selecionada = id;
   for (const x of rotulos) x.item.setAttribute('aria-current', String(x === r));
-  $('#ficha-grupo').textContent = r.e.grupo;
   $('#ficha-nome').textContent = r.e.nome;
   $('#ficha-texto').textContent = r.e.texto;
 
@@ -282,6 +280,7 @@ function posicionaRotulos() {
   const pxPorUnidade = (uniformes.uFoco.value / distancia) * (altura / 2);
   const coluna = 0.66 * pxPorUnidade + 46;
   /* a coluna da esquerda só existe se os nomes não invadirem o painel de texto */
+  legenda.style.setProperty('--cx', `${centro.x.toFixed(0)}px`);
   const cabeEsquerda = estreito || centro.x - coluna - 240 > painel.getBoundingClientRect().right;
 
   for (const r of rotulos) {
@@ -357,6 +356,7 @@ function posicionaRotulos() {
 const campoCorte = $<HTMLInputElement>('#corte');
 const valorCorte = $<HTMLOutputElement>('#corte-valor');
 const botaoGiro = $<HTMLButtonElement>('#giro');
+const legenda = $<HTMLElement>('#legenda');
 let botoesVista: HTMLButtonElement[] = [];
 let botoesPlano: HTMLButtonElement[] = [];
 
@@ -364,7 +364,9 @@ function defineCorte(v: number, imediato: boolean) {
   corteAlvo = THREE.MathUtils.clamp(v, 0, 1);
   if (imediato || reduz) corte = corteAlvo;
   campoCorte.value = String(Math.round(corteAlvo * 100));
-  valorCorte.textContent = corteAlvo < 0.005 ? 'sem corte' : plano.nome.toLowerCase();
+  const semCorte = corteAlvo < 0.005;
+  valorCorte.textContent = semCorte ? 'sem corte' : `${Math.round(corteAlvo * 100)} %`;
+  legenda.textContent = semCorte ? '' : `corte ${plano.nome.toLowerCase()}`;
   sujo = true;
 }
 campoCorte.addEventListener('input', () => {
@@ -389,7 +391,7 @@ function marca(botoes: HTMLButtonElement[], ativo: HTMLButtonElement | null) {
 function chip(caixa: HTMLElement, nome: string, aoClicar: (b: HTMLButtonElement) => void) {
   const b = document.createElement('button');
   b.type = 'button';
-  b.className = 'hud';
+  b.className = 'opcao';
   b.textContent = nome;
   b.setAttribute('aria-pressed', 'false');
   b.addEventListener('click', () => aoClicar(b));
@@ -440,6 +442,8 @@ const odontograma = criaOdontograma($('#odontograma'), (fdi) => {
   dialogo.close();
   location.hash = String(fdi);
 });
+/* a mesma arcada, em miniatura, ao lado do nome: mostra onde o dente fica na boca */
+const mini = criaOdontograma($('#mini'), () => {}, true);
 $('#abrir-arcada').addEventListener('click', () => dialogo.showModal());
 $('#fechar-arcada').addEventListener('click', () => dialogo.close());
 
@@ -465,12 +469,12 @@ function abreDente(fdi: number) {
   olhar.guinada = 0.45 * def.lado;
   olhar.inclinacao = 0.12;
 
-  $('#dente-num').textContent = `Dente ${fdi}`;
+  $('#dente-num').textContent = String(fdi);
   $('#dente-nome').textContent = reg.nome;
   $('#dente-onde').textContent = reg.onde;
-  $('#abrir-arcada').textContent = `Dente ${fdi} · trocar`;
   document.title = `${fdi} · ${reg.nome} ${reg.onde} · Atlas dental · Ricardo Chiarini`;
   odontograma.marca(fdi);
+  mini.marca(fdi);
 
   montaAtlas();
   montaControles();

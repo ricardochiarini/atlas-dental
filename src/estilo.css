@@ -1,15 +1,18 @@
-/* Paleta e tipografia do portfólio: Areia no claro, Noite no escuro. As cores das
-   camadas ficam em variáveis porque o shader lê as mesmas para pintar o dente. */
+/* A página é uma prancha de atlas: o dente no centro, os nomes em volta, a identificação
+   num canto e os comandos em texto corrido, sem caixas. Paleta e tipografia do portfólio:
+   Instrument Serif para o que se lê como título e nome, Archivo para o resto.
+   As cores dos tecidos ficam em variáveis porque o shader lê as mesmas para pintar o dente. */
 @font-face { font-family: "Instrument Serif"; src: url("./fontes/instrument-serif.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Instrument Serif"; src: url("./fontes/instrument-serif-italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Archivo"; src: url("./fontes/archivo-wdth.woff2") format("woff2"); font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; }
 
 :root {
   --bg: #E8E0CF; --fg: #23251C; --ac: #9A4326; --mut: #5A5D4B; --fio: #CFC6B0;
   --esmalte: #FBF8EF; --dentina: #E6CB98; --polpa: #B4502F; --cemento: #B98F58;
   --f-s: "Instrument Serif", Georgia, serif;
-  --f-ui: system-ui, "Segoe UI", sans-serif;
-  --f-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --f-ui: "Archivo", system-ui, sans-serif;
   --ease: cubic-bezier(.23, 1, .32, 1);
+  --margem: clamp(16px, 3.4vw, 48px);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -22,122 +25,157 @@
 
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
-body { background: var(--bg); color: var(--fg); font: 16px/1.5 var(--f-ui); overflow: hidden; }
-a { color: inherit; text-underline-offset: 3px; }
+body { background: var(--bg); color: var(--fg); font: 400 15px/1.5 var(--f-ui); overflow: hidden; -webkit-font-smoothing: antialiased; scrollbar-color: var(--mut) transparent; }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 button { font: inherit; color: inherit; cursor: pointer; }
-:focus-visible { outline: 2px solid var(--ac); outline-offset: 3px; }
-.hud { font: 500 11px/1.35 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; }
+::selection { background: var(--ac); color: var(--bg); }
+:focus-visible { outline: 1px solid var(--ac); outline-offset: 4px; }
 
 #tela { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
 #tela:active { cursor: grabbing; }
-#tela:focus-visible { outline-offset: -4px; }
+#tela:focus-visible { outline-offset: -6px; }
 
-/* Coluna de texto por cima da tela; só os controles recebem o ponteiro. */
-.folha { position: fixed; left: clamp(16px, 4vw, 56px); top: clamp(20px, 5vh, 56px); bottom: 56px; width: min(380px, 34vw); display: flex; flex-direction: column; pointer-events: none; }
+/* ---------- cabeçalho: de onde é a prancha ---------- */
+.cabeca { position: fixed; left: var(--margem); right: var(--margem); top: 18px; display: flex; justify-content: space-between; align-items: baseline; pointer-events: none; }
+.cabeca > * { pointer-events: auto; }
+.cabeca span { font: 400 17px/1 var(--f-s); text-transform: uppercase; letter-spacing: .03em; }
+.cabeca a { color: var(--mut); text-decoration: none; transition: color .15s var(--ease); }
+.cabeca a::before { content: ""; display: inline-block; width: 18px; height: 1px; margin-right: 9px; vertical-align: .3em; background: currentColor; }
+
+/* ---------- coluna de identificação e comandos ---------- */
+.folha { position: fixed; left: var(--margem); top: 64px; bottom: 54px; width: min(420px, 34vw); display: flex; flex-direction: column; align-items: flex-start; pointer-events: none; }
 .folha > * { pointer-events: auto; flex: none; }
-.folha > .hud { color: var(--mut); margin: 0 0 14px; }
-h1 { margin: 0; font: 400 clamp(36px, 4.2vw, 64px)/.95 var(--f-s); text-transform: uppercase; letter-spacing: -.01em; }
-h1 em { display: block; color: var(--ac); text-transform: none; }
-.texto { margin: 18px 0 0; max-width: 36ch; color: var(--mut); font-size: 15px; }
 
-.trocar { margin-top: 16px; align-self: flex-start; }
+/* o número FDI identifica a prancha; o nome vem logo abaixo, em duas vozes */
+h1 { margin: 0; font: 400 clamp(26px, 2.5vw, 36px)/1 var(--f-s); text-transform: uppercase; letter-spacing: -.005em; text-wrap: balance; }
+#dente-num { display: block; margin: 0 0 .1em -.04em; font-size: clamp(76px, 8.6vw, 96px); line-height: .8; letter-spacing: -.03em; }
+h1 em { display: block; margin-top: .06em; color: var(--ac); text-transform: none; }
 
-/* Odontograma: as duas arcadas em vista oclusal */
-#arcada { width: min(440px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--fg); border-radius: 14px; background: var(--bg); color: var(--fg); }
-#arcada::backdrop { background: color-mix(in srgb, var(--bg) 78%, transparent); }
-#arcada header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
-#arcada h2 { margin: 0; font: 400 30px/1 var(--f-s); }
-#arcada > p { margin: 6px 0 0; color: var(--mut); text-align: center; }
-#odontograma svg { display: block; width: 100%; height: auto; }
-#odontograma .dente rect { fill: none; stroke: var(--mut); stroke-width: 1; opacity: .45; }
-#odontograma .dente text { fill: var(--mut); font: 500 9px var(--f-mono); opacity: .55; }
-#odontograma .pronto { cursor: pointer; outline-offset: 4px; }
-#odontograma .pronto rect { fill: var(--esmalte); stroke: var(--fg); stroke-width: 1.4; opacity: 1; transition: fill .15s var(--ease); }
-#odontograma .pronto text { fill: var(--fg); font-weight: 700; opacity: 1; }
-#odontograma .pronto[aria-current="true"] rect { fill: var(--ac); stroke: var(--ac); }
-#odontograma .pronto[aria-current="true"] text { fill: var(--ac); }
-@media (hover: hover) { #odontograma .pronto:hover rect { fill: var(--polpa); } }
-#odontograma .legenda { fill: var(--mut); font: 500 8px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; }
+.arcada { display: flex; align-items: center; gap: 14px; margin-top: 24px; padding: 0; border: 0; background: none; text-align: left; }
+#mini { display: block; width: 74px; }
+#mini svg { display: block; width: 100%; height: auto; }
+.arcada > span:last-child { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; text-decoration-color: var(--mut); transition: text-decoration-color .15s var(--ease); }
 
-.controles { display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; align-items: center; margin-top: 22px; max-width: 330px; }
-.controles label { display: flex; justify-content: space-between; grid-column: 1 / -1; color: var(--mut); margin: 0; }
-.controles output { color: var(--fg); }
-.controles input { width: 100%; margin: 0; accent-color: var(--ac); }
+/* comandos em linha de texto: um rótulo em itálico e as opções em seguida */
+.linha { display: flex; align-items: baseline; gap: 14px; margin-top: 12px; }
+.arcada + .linha { margin-top: 26px; }
+.linha > span, .linha > label { flex: none; width: 62px; font: italic 400 19px/1 var(--f-s); color: var(--mut); }
+#vistas, #planos { display: flex; flex-wrap: wrap; gap: 0 14px; }
+.opcao { padding: 5px 0; border: 0; background: none; color: var(--mut); text-decoration: underline transparent 1px; text-underline-offset: 6px; transition: color .15s var(--ease), text-decoration-color .15s var(--ease); }
+.opcao[aria-pressed="true"] { color: var(--fg); text-decoration-color: var(--ac); }
 
-.chave, .vistas button { padding: 7px 11px; border: 1px solid var(--fio); border-radius: 99px; background: none; transition: background-color .18s var(--ease), color .18s, border-color .18s; }
-.chave[aria-pressed="true"], .vistas button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
-@media (hover: hover) { .chave:hover, .vistas button:hover { border-color: var(--fg); } }
+/* posição do corte: um fio com um cursor, como uma régua */
+.posicao { align-items: center; width: 100%; max-width: 330px; }
+.posicao input { flex: 1; min-width: 0; height: 22px; margin: 0; background: none; -webkit-appearance: none; appearance: none; }
+.posicao input::-webkit-slider-runnable-track { height: 1px; background: var(--mut); }
+.posicao input::-moz-range-track { height: 1px; background: var(--mut); }
+.posicao input::-webkit-slider-thumb { -webkit-appearance: none; width: 3px; height: 17px; margin-top: -8px; border: 0; border-radius: 0; background: var(--ac); cursor: ew-resize; }
+.posicao input::-moz-range-thumb { width: 3px; height: 17px; border: 0; border-radius: 0; background: var(--ac); cursor: ew-resize; }
+.posicao output { flex: none; min-width: 9.5em; color: var(--mut); font-size: 13px; font-variant-numeric: tabular-nums; }
 
-.vistas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 16px; }
-.vistas > span { color: var(--mut); }
-.vistas.cortes { margin-top: 8px; }
-.vistas > span { min-width: 3.2em; }
-#vistas, #planos { display: flex; flex-wrap: wrap; gap: 6px; }
+.giro { margin: 6px 0 0 76px; }
 
-/* Índice: todas as estruturas, agrupadas. Rola por dentro quando não cabe. */
-#indice { margin-top: 18px; min-height: 0; flex: 1 1 0; overflow-y: auto; border-top: 1px solid var(--fio); scrollbar-width: thin; }
-#indice summary { position: sticky; top: 0; z-index: 1; padding: 12px 0; background: var(--bg); color: var(--mut); cursor: pointer; }
-#indice[open] summary { color: var(--fg); }
-#lista { padding: 0 8px 8px 0; }
-/* cabeçalho de grupo: também é a chave que mostra ou esconde os nomes daquele grupo no dente */
-.grupo { display: flex; align-items: center; gap: 8px; width: 100%; margin: 12px 0 4px; padding: 4px 0; border: 0; background: none; color: var(--fg); text-align: left; }
-.grupo:first-child { margin-top: 0; }
-.grupo::before { content: ""; flex: none; width: 9px; height: 9px; border: 1px solid var(--fg); border-radius: 50%; background: var(--fg); }
+/* ---------- índice ---------- */
+#indice { align-self: stretch; margin-top: 22px; min-height: 0; flex: 1 1 0; overflow-y: auto; scrollbar-width: thin; }
+#indice summary { position: sticky; top: 0; z-index: 1; display: flex; align-items: baseline; gap: 10px; padding: 10px 0; list-style: none; background: var(--bg); border-top: 1px solid var(--fio); font: 400 22px/1 var(--f-s); cursor: pointer; }
+#indice summary::-webkit-details-marker { display: none; }
+#indice summary > span { font: 400 13px/1 var(--f-ui); color: var(--mut); }
+#indice summary::after { content: ""; width: 7px; height: 7px; margin-left: auto; border-right: 1px solid var(--fg); border-bottom: 1px solid var(--fg); rotate: 45deg; translate: -3px -3px; transition: rotate .2s var(--ease), translate .2s var(--ease); }
+#indice[open] summary::after { rotate: -135deg; translate: -3px 2px; }
+#lista { padding: 0 10px 12px 0; }
+/* cabeçalho de grupo: também liga e desliga os nomes daquele grupo no dente */
+.grupo { display: flex; align-items: baseline; gap: 9px; width: 100%; margin: 14px 0 3px; padding: 3px 0; border: 0; background: none; text-align: left; font-size: 12.5px; font-stretch: 92%; text-transform: uppercase; letter-spacing: .07em; }
+.grupo:first-child { margin-top: 2px; }
+.grupo::before { content: ""; flex: none; width: 7px; height: 7px; border: 1px solid var(--fg); background: var(--fg); translate: 0 -1px; }
 .grupo[aria-pressed="false"] { color: var(--mut); }
 .grupo[aria-pressed="false"]::before { background: none; border-color: var(--mut); }
-.grupo i { margin-left: auto; font-style: normal; color: var(--mut); }
-.item { display: block; width: 100%; padding: 4px 8px 4px 17px; border: 0; border-radius: 6px; background: none; text-align: left; font: 400 18px/1.2 var(--f-s); transition: background-color .15s var(--ease), color .15s; }
-.item[aria-current="true"] { background: var(--fg); color: var(--bg); }
-@media (hover: hover) { .item:hover:not([aria-current="true"]) { color: var(--ac); } }
+.grupo i { margin-left: auto; font-style: normal; color: var(--mut); font-variant-numeric: tabular-nums; }
+.item { display: block; width: 100%; padding: 3px 0 3px 16px; border: 0; background: none; text-align: left; font: 400 19px/1.2 var(--f-s); transition: color .15s var(--ease); }
+.item[aria-current="true"] { color: var(--ac); font-style: italic; }
 
-/* Nomes presos ao dente. A posição vem do JavaScript, em variáveis --x e --y. */
+/* ---------- nomes presos ao dente ---------- */
 #linhas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 #linhas line { stroke: var(--fg); stroke-width: 1; opacity: 0; transition: opacity .2s var(--ease); }
 #linhas circle { fill: var(--bg); stroke: var(--fg); stroke-width: 1; opacity: 0; transition: opacity .2s var(--ease); }
-#linhas .on { opacity: .55; }
+#linhas .on { opacity: .5; }
 #linhas circle.on { opacity: 1; }
 #linhas .sel { opacity: 1; stroke: var(--ac); }
 #linhas circle.sel { fill: var(--ac); }
 
 #rotulos { position: fixed; inset: 0; pointer-events: none; }
-.rot { position: absolute; left: 0; top: 0; padding: 2px 6px; border: 0; border-radius: 6px; background: none; white-space: nowrap; font: 400 20px/1.15 var(--f-s); opacity: 0; visibility: hidden; pointer-events: none; transform: translate(var(--x), var(--y)) translateY(-50%); transition: opacity .2s var(--ease), color .15s, visibility 0s .2s; }
+.rot { position: absolute; left: 0; top: 0; padding: 2px 6px; border: 0; background: none; white-space: nowrap; font: 400 20px/1.15 var(--f-s); opacity: 0; visibility: hidden; pointer-events: none; transform: translate(var(--x), var(--y)) translateY(-50%); transition: opacity .2s var(--ease), color .15s, visibility 0s .2s; }
 .rot.esq { transform: translate(var(--x), var(--y)) translate(-100%, -50%); }
 .rot.on { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .2s var(--ease), color .15s; }
-.rot.sel { color: var(--ac); }
-@media (hover: hover) { .rot:hover { color: var(--ac); } }
+.rot.sel { color: var(--ac); font-style: italic; }
 
-/* Ficha da estrutura selecionada */
-#ficha { position: fixed; right: clamp(16px, 4vw, 56px); bottom: 52px; width: min(320px, 30vw); padding-top: 12px; border-top: 1px solid var(--fg); pointer-events: none; }
-#ficha .hud { margin: 0 0 6px; color: var(--mut); }
-#ficha h2 { margin: 0; font: 400 28px/1.05 var(--f-s); }
-#ficha p:last-child { margin: 8px 0 0; color: var(--mut); font-size: 14px; line-height: 1.45; }
+/* legenda da figura, sob o dente: diz o que se está vendo */
+.fig { position: fixed; left: var(--cx, 60%); bottom: 58px; margin: 0; translate: -50% 0; white-space: nowrap; font: italic 400 18px/1 var(--f-s); color: var(--mut); pointer-events: none; }
 
-.base { position: fixed; left: clamp(16px, 4vw, 56px); right: clamp(16px, 4vw, 56px); bottom: 18px; display: flex; flex-wrap: wrap; gap: 4px 24px; justify-content: space-between; color: var(--mut); pointer-events: none; }
-.base a { pointer-events: auto; color: var(--fg); }
+/* nota da estrutura escolhida, como numa margem de página */
+#ficha { position: fixed; right: var(--margem); bottom: 58px; width: min(300px, 27vw); pointer-events: none; }
+#ficha h2 { margin: 0; font: 400 30px/1.02 var(--f-s); text-wrap: balance; }
+#ficha p { margin: 9px 0 0; color: var(--mut); font-size: 14.5px; line-height: 1.5; text-wrap: pretty; }
+#ficha h2:empty { display: none; }
+#ficha h2:empty + p { margin: 0; font: italic 400 19px/1.3 var(--f-s); }
 
-#sem-webgl { position: fixed; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; text-align: center; background: var(--bg); }
+.base { position: fixed; left: var(--margem); right: var(--margem); bottom: 16px; display: flex; gap: 6px 28px; justify-content: space-between; color: var(--mut); font-size: 12.5px; line-height: 1.3; pointer-events: none; }
+
+/* ---------- odontograma ---------- */
+#arcada { width: min(430px, calc(100vw - 32px)); padding: 22px 22px 18px; border: 1px solid var(--fg); border-radius: 0; background: var(--bg); color: var(--fg); }
+#arcada::backdrop { background: color-mix(in srgb, var(--bg) 82%, transparent); }
+#arcada header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+#arcada h2 { margin: 0; font: 400 28px/1 var(--f-s); text-transform: uppercase; }
+#arcada > p { margin: 4px 0 0; color: var(--mut); font-size: 13px; text-align: center; }
+#odontograma svg { display: block; width: 100%; height: auto; }
+.dente rect { fill: none; stroke: var(--mut); stroke-width: 1; opacity: .45; }
+.dente text { fill: var(--mut); font: 400 9px var(--f-ui); font-variant-numeric: tabular-nums; opacity: .6; }
+.pronto rect { fill: var(--esmalte); stroke: var(--fg); stroke-width: 1.2; opacity: 1; transition: fill .15s var(--ease); }
+#odontograma .pronto { cursor: pointer; outline-offset: 4px; }
+#odontograma .pronto text { fill: var(--fg); opacity: 1; }
+.pronto[aria-current="true"] rect { fill: var(--ac); stroke: var(--ac); }
+#odontograma .pronto[aria-current="true"] text { fill: var(--ac); font-weight: 600; }
+.legenda { fill: var(--mut); font: italic 400 11px var(--f-s); }
+/* miniatura ao lado do nome: só a silhueta das arcadas e o dente atual */
+#mini .dente rect { stroke-width: 2.4; opacity: .5; }
+#mini .pronto rect { fill: none; stroke: var(--fg); opacity: .75; }
+#mini .pronto[aria-current="true"] rect { fill: var(--ac); stroke: var(--ac); opacity: 1; }
+
+@media (hover: hover) {
+  .cabeca a:hover, .opcao:hover, .item:hover, .rot:hover { color: var(--ac); }
+  .arcada:hover > span:last-child { text-decoration-color: var(--ac); }
+  .grupo:hover { color: var(--ac); }
+  #odontograma .pronto:hover rect { fill: var(--polpa); }
+}
+
+#sem-webgl { position: fixed; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; text-align: center; background: var(--bg); font: 400 22px/1.3 var(--f-s); }
 #sem-webgl[hidden] { display: none; }
 
-/* Telas estreitas: não há espaço para colunas de nomes. Cada estrutura vira um ponto
-   tocável sobre o dente, e o nome aparece na ficha, embaixo. */
+/* ---------- telas estreitas ----------
+   Não há espaço para colunas de nomes: cada estrutura vira um ponto tocável sobre o dente,
+   e o nome aparece na nota, embaixo. A identificação sobe e os comandos descem. */
 @media (max-width: 860px) {
-  .folha { width: auto; right: 16px; top: 14px; bottom: auto; }
-  .folha > .hud { margin-bottom: 6px; }
-  h1 { font-size: clamp(30px, 9vw, 46px); }
-  h1 em { display: inline; }
-  .texto, #indice, .vistas > span { display: none; }
-  .controles { position: fixed; left: 16px; right: 16px; bottom: 50px; max-width: none; margin: 0; }
-  .vistas { position: fixed; left: 16px; right: 0; bottom: 142px; margin: 0; }
-  .vistas.cortes { bottom: 104px; margin: 0; }
-  #vistas, #planos { flex-wrap: nowrap; overflow-x: auto; padding-right: 16px; scrollbar-width: none; }
-  #vistas button, #planos button { white-space: nowrap; }
-  #ficha { left: 16px; right: 16px; bottom: 188px; width: auto; }
-  #ficha h2 { font-size: 22px; }
-  #ficha p:last-child { font-size: 13px; }
+  .cabeca { top: 12px; }
+  .folha { position: static; width: auto; }
+  h1 { position: fixed; left: var(--margem); right: var(--margem); top: 44px; display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: end; font-size: 21px; }
+  #dente-num { grid-row: 1 / 3; margin: 0; font-size: 62px; line-height: .78; }
+  h1 em { margin: 0; }
+  .arcada { position: fixed; right: var(--margem); top: 50px; margin: 0; }
+  #mini { width: 46px; }
+  .arcada > span:last-child { display: none; }
+  .linha, .arcada + .linha { position: fixed; left: var(--margem); right: 0; margin: 0; }
+  .linha:nth-of-type(1) { bottom: 118px; }
+  .linha:nth-of-type(2) { bottom: 82px; }
+  .linha.posicao { bottom: 44px; right: var(--margem); max-width: none; width: auto; }
+  #vistas, #planos { flex-wrap: nowrap; overflow-x: auto; padding-right: var(--margem); scrollbar-width: none; }
+  .opcao { white-space: nowrap; padding: 9px 0; }
+  .giro, #indice, .fig, .base span:nth-child(2), .base span:nth-child(3) { display: none; }
+  #ficha { left: var(--margem); right: var(--margem); bottom: 162px; width: auto; }
+  #ficha h2 { font-size: 23px; }
+  #ficha p { font-size: 13.5px; }
+  #ficha h2:empty + p { font-size: 17px; }
   #linhas line { display: none; }
-  .rot { width: 30px; height: 30px; padding: 0; font-size: 0; transform: translate(var(--x), var(--y)) translate(-50%, -50%); }
+  .rot { width: 32px; height: 32px; padding: 0; font-size: 0; transform: translate(var(--x), var(--y)) translate(-50%, -50%); }
   .rot.esq { transform: translate(var(--x), var(--y)) translate(-50%, -50%); }
-  .base span { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

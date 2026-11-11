@@ -11,11 +11,14 @@ const FUNDO: Record<Classe, number> = { incisivo: 11, canino: 15, 'pre-molar': 1
 const SUPERIOR = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
 const INFERIOR = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 
-export function criaOdontograma(caixa: HTMLElement, aoEscolher: (fdi: number) => void) {
+export function criaOdontograma(caixa: HTMLElement, aoEscolher: (fdi: number) => void, mini = false) {
   const svg = document.createElementNS(NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 340 372');
-  svg.setAttribute('role', 'group');
-  svg.setAttribute('aria-label', 'Odontograma da dentição permanente');
+  svg.setAttribute('viewBox', mini ? '22 22 296 328' : '0 0 340 372');
+  if (mini) svg.setAttribute('aria-hidden', 'true');
+  else {
+    svg.setAttribute('role', 'group');
+    svg.setAttribute('aria-label', 'Odontograma da dentição permanente');
+  }
   const botoes = new Map<number, SVGGElement>();
 
   const arcada = (ordem: number[], cy: number, sentido: 1 | -1) => {
@@ -50,15 +53,18 @@ export function criaOdontograma(caixa: HTMLElement, aoEscolher: (fdi: number) =>
       num.setAttribute('y', (-sentido * Math.sin(ang) * 25 + 3.5).toFixed(1));
       num.setAttribute('text-anchor', 'middle');
       num.textContent = String(fdi);
-      g.appendChild(num);
+      if (!mini) g.appendChild(num);
 
       const titulo = document.createElementNS(NS, 'title');
       const pronto = temFicha(fdi);
       titulo.textContent = `${fdi} · ${reg.nome} ${reg.onde}${pronto ? '' : ' (em preparação)'}`;
-      g.appendChild(titulo);
+      if (!mini) g.appendChild(titulo);
 
       g.classList.add('dente');
-      if (pronto) {
+      if (pronto && mini) {
+        g.classList.add('pronto');
+        botoes.set(fdi, g);
+      } else if (pronto) {
         g.classList.add('pronto');
         g.setAttribute('role', 'button');
         g.setAttribute('tabindex', '0');
@@ -89,6 +95,10 @@ export function criaOdontograma(caixa: HTMLElement, aoEscolher: (fdi: number) =>
     t.textContent = texto;
     svg.appendChild(t);
   };
+  if (mini) {
+    caixa.appendChild(svg);
+    return { marca(fdi: number) { for (const [n, g] of botoes) g.setAttribute('aria-current', String(n === fdi)); } };
+  }
   rotulo('Superior', 170, 150);
   rotulo('Inferior', 170, 230);
   rotulo('Direita', 112, 190);

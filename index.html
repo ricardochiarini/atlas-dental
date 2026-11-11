@@ -15,54 +15,66 @@
     <svg id="linhas" aria-hidden="true"></svg>
     <div id="rotulos"></div>
 
+    <header class="cabeca">
+      <span>Atlas dental</span>
+      <a href="https://ricardochiarini.com/lab">Laboratório</a>
+    </header>
+
     <main class="folha">
-      <p class="hud"><span id="dente-num">Dente 36</span> · Atlas dental · WebGL</p>
-      <h1><span id="dente-nome">Primeiro molar</span> <em id="dente-onde">inferior esquerdo</em></h1>
-      <p class="texto">
-        O dente inteiro é uma função matemática calculada em cada pixel: não há malha, textura nem arquivo 3D.
-      </p>
-      <button id="abrir-arcada" type="button" class="hud chave trocar">Dente 36 · trocar</button>
+      <h1>
+        <span id="dente-num">36</span>
+        <span id="dente-nome">Primeiro molar</span>
+        <em id="dente-onde">inferior esquerdo</em>
+      </h1>
 
-      <div class="controles">
-        <label class="hud" for="corte">Posição do corte <output id="corte-valor">sem corte</output></label>
-        <input id="corte" type="range" min="0" max="100" step="1" value="0" />
-        <button id="giro" type="button" class="hud chave" aria-pressed="true">Girar sozinho</button>
-      </div>
+      <button id="abrir-arcada" type="button" class="arcada">
+        <span id="mini"></span>
+        <span>Trocar de dente</span>
+      </button>
 
-      <div class="vistas" role="group" aria-label="Vistas">
-        <span class="hud">Vista</span>
+      <div class="linha" role="group" aria-label="Vistas">
+        <span>vista</span>
         <div id="vistas"></div>
       </div>
 
-      <div class="vistas cortes" role="group" aria-label="Planos de corte">
-        <span class="hud">Corte</span>
+      <div class="linha" role="group" aria-label="Planos de corte">
+        <span>corte</span>
         <div id="planos"></div>
       </div>
 
+      <div class="linha posicao">
+        <label for="corte">posição</label>
+        <input id="corte" type="range" min="0" max="100" step="1" value="0" />
+        <output id="corte-valor">sem corte</output>
+      </div>
+
+      <button id="giro" type="button" class="opcao giro" aria-pressed="true">Girar sozinho</button>
+
       <details id="indice">
-        <summary class="hud">Índice · <span id="total"></span> estruturas</summary>
+        <summary>Índice <span><span id="total"></span> estruturas</span></summary>
         <div id="lista"></div>
       </details>
     </main>
 
+    <p id="legenda" class="fig"></p>
+
     <aside id="ficha" aria-live="polite">
-      <p class="hud" id="ficha-grupo"></p>
       <h2 id="ficha-nome"></h2>
       <p id="ficha-texto"></p>
     </aside>
 
     <dialog id="arcada" aria-labelledby="arcada-titulo">
       <header>
-        <h2 id="arcada-titulo">Escolha o dente</h2>
-        <button id="fechar-arcada" type="button" class="hud chave">Fechar</button>
+        <h2 id="arcada-titulo">Dentição permanente</h2>
+        <button id="fechar-arcada" type="button" class="opcao">Fechar</button>
       </header>
       <div id="odontograma"></div>
-      <p class="hud">Dentição permanente · notação FDI · os dentes esmaecidos estão em preparação</p>
+      <p>Notação FDI. O lado direito do paciente fica à esquerda.</p>
     </dialog>
 
-    <footer class="base hud">
-      <a href="https://ricardochiarini.com/lab">← Laboratório</a>
-      <span>Ilustração esquemática, não é material clínico</span>
+    <footer class="base">
+      <span>Ilustração esquemática, não é material clínico.</span>
+      <span>O dente é uma função matemática calculada em cada pixel, sem modelo 3D.</span>
       <span>Ricardo Chiarini, cirurgião-dentista e desenvolvedor</span>
     </footer>
 
