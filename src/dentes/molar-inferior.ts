@@ -177,6 +177,7 @@ export function molarInferior(p: MolarInferior): Dente {
   const mv = p.canais[0];
   return {
     fdi: p.fdi,
+    arco: 'inferior',
     lado: 1,
     forma: une(0.13, coroa, raizes),
     polpa,

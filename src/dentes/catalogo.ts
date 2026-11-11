@@ -4,6 +4,7 @@ import type { Dente, Estrutura, V } from '../atlas';
 import { criaModelo, type Modelo } from '../modelo';
 import { espelho } from '../no';
 import { molar36, molar37, molar38 } from './molares-inferiores';
+import { molar26, molar27, molar28 } from './molares-superiores';
 
 export type Classe = 'incisivo' | 'canino' | 'pre-molar' | 'molar';
 
@@ -55,6 +56,12 @@ function espelha(def: Dente, fdi: number): Dente {
 
 /* fichas prontas; as demais aparecem no odontograma como "em preparação" */
 const FICHAS: Record<number, () => Dente> = {
+  26: () => molar26,
+  27: () => molar27,
+  28: () => molar28,
+  16: () => espelha(molar26, 16),
+  17: () => espelha(molar27, 17),
+  18: () => espelha(molar28, 18),
   36: () => molar36,
   37: () => molar37,
   38: () => molar38,

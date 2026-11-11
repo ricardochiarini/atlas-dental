@@ -15,6 +15,7 @@ uniform vec3 uFundo, uEsmalte, uDentina, uPolpa, uCemento, uTinta;
 uniform vec3 uCentro;    // centro e raio da esfera que envolve o dente
 uniform float uRaio;
 uniform float uChao;     // altura do chão, onde cai a sombra
+uniform float uInverte;  // -1 nos dentes superiores: a imagem é espelhada na vertical, com a coroa para baixo
 
 out vec4 saida;
 
@@ -125,14 +126,16 @@ vec3 tinge(vec3 p, vec3 rd, float px) {
 void main() {
   vec2 uv = (gl_FragCoord.xy * 2.0 - uRes) / uRes.y;
   uv.x -= uDesloc;
+  uv.y *= uInverte;
   vec3 rd = normalize(uBase * vec3(uv, uFoco));
   vec3 ro = uOlho;
   float pixel = 2.0 / (uRes.y * uFoco);
 
   // fundo: a cor da página, com a sombra do dente no chão
   vec3 fundo = emLinear(uFundo);
-  if (rd.y < 0.0) {
-    vec3 g = ro + rd * ((uChao - ro.y) / rd.y);
+  float tChao = (uChao - ro.y) / rd.y;
+  if (tChao > 0.0) {
+    vec3 g = ro + rd * tChao;
     float s = exp(-dot(g.xz * vec2(1.0, 1.35), g.xz * vec2(1.0, 1.35)) * 1.9);
     fundo = mix(fundo, vec3(0.0), s * 0.30);
   }

@@ -34,6 +34,8 @@ export interface Plano { nome: string; normal: V; fora: number; fim: number; pad
 /** A ficha de um dente: forma, tecidos, enquadramento e o que há para nomear. */
 export interface Dente {
   fdi: number;
+  /** dentes superiores são mostrados de coroa para baixo (a imagem é espelhada na vertical) */
+  arco: 'superior' | 'inferior';
   /** +1 quando a mesial fica em x negativo (dentes do lado esquerdo), −1 no lado direito. */
   lado: 1 | -1;
   forma: No;

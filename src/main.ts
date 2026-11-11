@@ -40,6 +40,7 @@ const uniformes = {
   uCentro: { value: new THREE.Vector3() },
   uRaio: { value: 1.34 },
   uChao: { value: -1.46 },
+  uInverte: { value: 1 },
   uFundo: { value: new THREE.Color() },
   uEsmalte: { value: new THREE.Color() },
   uDentina: { value: new THREE.Color() },
@@ -124,7 +125,7 @@ function projeta(p: V): { x: number; y: number } {
   aux.set(p[0], p[1], p[2]).sub(uniformes.uOlho.value);
   const z = aux.dot(frente);
   const ux = (aux.dot(direita) / z) * uniformes.uFoco.value + uniformes.uDesloc.value;
-  const uy = (aux.dot(cima) / z) * uniformes.uFoco.value;
+  const uy = (aux.dot(cima) / z) * uniformes.uFoco.value * uniformes.uInverte.value;
   return { x: (ux * altura + largura) / 2, y: (altura - uy * altura) / 2 };
 }
 
@@ -135,7 +136,7 @@ function mede() {
   /* no desktop o dente fica à direita do texto; no celular, centralizado, mais longe e mais alto */
   uniformes.uDesloc.value = estreito ? 0 : Math.min(0.42, (largura / altura) * 0.24);
   distancia = estreito ? Math.max(7.4, 6.0 / Math.min(1, (largura / altura) * 1.45)) : 6.4;
-  if (def) ALVO.set(def.centro[0], def.centro[1] - (estreito ? 0.36 : 0), def.centro[2]);
+  if (def) ALVO.set(def.centro[0], def.centro[1] - (estreito ? 0.36 * uniformes.uInverte.value : 0), def.centro[2]);
   const dpr = Math.min(devicePixelRatio || 1, 1.5) * escala;
   renderer.setPixelRatio(dpr);
   renderer.setSize(largura, altura, false);
@@ -414,7 +415,7 @@ function montaControles() {
      mesial e distal trocam de lado conforme o dente é esquerdo ou direito. */
   const vistas: [string, number, number][] = [
     ['Vestibular', 0, 0.1],
-    ['Lingual', Math.PI, 0.1],
+    [def.arco === 'superior' ? 'Palatina' : 'Lingual', Math.PI, 0.1],
     ['Mesial', (-def.lado * Math.PI) / 2, 0.1],
     ['Distal', (def.lado * Math.PI) / 2, 0.1],
     ['Oclusal', 0, 1.2],
@@ -452,6 +453,9 @@ function abreDente(fdi: number) {
   uniformes.uCentro.value.set(def.centro[0], def.centro[1], def.centro[2]);
   uniformes.uRaio.value = def.raio;
   uniformes.uChao.value = def.chao;
+  /* dentes superiores aparecem de coroa para baixo: a imagem é espelhada na vertical */
+  uniformes.uInverte.value = def.arco === 'superior' ? -1 : 1;
+  uniformes.uLuz.value.set(-0.5, 0.8 * uniformes.uInverte.value, 0.7);
 
   plano = def.planos[0];
   uniformes.uPlano.value.set(plano.normal[0], plano.normal[1], plano.normal[2]);
@@ -489,11 +493,11 @@ tela.addEventListener('pointerdown', (e) => {
 });
 tela.addEventListener('pointermove', (e) => {
   /* a luz acompanha o ponteiro de leve, mesmo sem arrastar */
-  uniformes.uLuz.value.set(-0.5 + (e.clientX / largura - 0.5) * 0.9, 0.8 - (e.clientY / altura - 0.5) * 0.5, 0.7);
+  uniformes.uLuz.value.set(-0.5 + (e.clientX / largura - 0.5) * 0.9, (0.8 - (e.clientY / altura - 0.5) * 0.5) * uniformes.uInverte.value, 0.7);
   sujo = true;
   if (!arrastando) return;
   olhar.velG = -(e.clientX - ultimoX) * 0.006;
-  olhar.velI = (e.clientY - ultimoY) * 0.004;
+  olhar.velI = (e.clientY - ultimoY) * 0.004 * uniformes.uInverte.value;
   ultimoX = e.clientX;
   ultimoY = e.clientY;
 });
