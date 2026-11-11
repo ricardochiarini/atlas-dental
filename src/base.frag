@@ -48,6 +48,17 @@ float cena(vec3 p) { return max(dente(p), dot(p, uPlano) - uCorte); }
 vec3 emLinear(vec3 c) { return pow(c, vec3(2.2)); }
 vec3 srgb(vec3 c) { return pow(clamp(c, 0.0, 1.0), vec3(1.0 / 2.2)); }
 
+// ruído suave em 3D, para a textura das superfícies
+float acaso(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float ruido(vec3 x) {
+  vec3 i = floor(x), f = fract(x);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(acaso(i), acaso(i + vec3(1.0, 0.0, 0.0)), f.x), mix(acaso(i + vec3(0.0, 1.0, 0.0)), acaso(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
+             mix(mix(acaso(i + vec3(0.0, 0.0, 1.0)), acaso(i + vec3(1.0, 0.0, 1.0)), f.x), mix(acaso(i + vec3(0.0, 1.0, 1.0)), acaso(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z);
+}
+
+float graos(vec3 q) { return ruido(q) + 0.5 * ruido(q.zxy * 2.3 + 7.0); }
+
 vec3 normalDoDente(vec3 p) {
   // o passo da normal acompanha o tamanho do pixel: de perto, mais fino e mais nítido
   vec2 e = vec2(clamp(3.0 * distance(p, uOlho) / (uRes.y * uFoco), 0.0004, 0.0015), 0.0);
@@ -109,15 +120,38 @@ vec3 tinge(vec3 p, vec3 rd, float px) {
     float naCoroa = smoothstep(c - 0.03, c + 0.06, p.y);
     vec3 base = mix(emLinear(uCemento), emLinear(uEsmalte), naCoroa);
 
-    float difusa = pow(ndl * 0.5 + 0.5, 1.6);                       // luz envolvente, sem sombra dura
+    // ---- textura: só aparece quando o pixel é menor que o detalhe, para não cintilar de longe ----
+    float perto = smoothstep(0.0045, 0.0012, px);
+    // periquimácias: ondas finas e horizontais do esmalte, mais nítidas no terço cervical
+    float cervical = 1.0 - smoothstep(c + 0.08, c + 0.5, p.y);
+    float onda = cos(p.y * 560.0 + 3.0 * ruido(p * 9.0));
+    // cemento: superfície fosca e irregular
+    vec3 q = p.yzx * 46.0 + p * 11.0; // eixos misturados, para a grade do ruído não aparecer
+    float g0 = graos(q);
+    vec3 grao = vec3(graos(q + vec3(0.35, 0.0, 0.0)) - g0, graos(q + vec3(0.0, 0.35, 0.0)) - g0, graos(q + vec3(0.0, 0.0, 0.35)) - g0);
+    vec3 relevo = vec3(0.0, onda * 0.05 * cervical * naCoroa, 0.0) + grao * 0.34 * (1.0 - naCoroa);
+    vec3 nt = normalize(n + (relevo - n * dot(relevo, n)) * perto);
+    float ndt = dot(nt, l);
+
+    // manchas suaves: o cemento varia de tom; o esmalte, quase nada
+    float mancha = ruido(p * 5.0) * 0.6 + ruido(p * 17.0) * 0.4 - 0.5;
+    base *= 1.0 + mancha * mix(0.16, 0.03, naCoroa);
+    // perto do colo o esmalte é mais fino e mais amarelado
+    base = mix(base, emLinear(uDentina), 0.16 * cervical * naCoroa);
+
+    float difusa = pow(ndt * 0.5 + 0.5, 1.6);                       // luz envolvente, sem sombra dura
     vec3 h = normalize(l + v);
-    float brilho = pow(max(dot(n, h), 0.0), mix(16.0, 85.0, naCoroa)) * mix(0.06, 0.55, naCoroa) * sb;
-    float borda = pow(1.0 - max(dot(n, v), 0.0), 4.0) * mix(0.06, 0.30, naCoroa);
+    float ndh = max(dot(nt, h), 0.0);
+    // dois brilhos no esmalte: um reflexo estreito e um halo largo, de superfície úmida
+    float brilho = (pow(ndh, mix(16.0, 110.0, naCoroa)) * mix(0.05, 0.55, naCoroa) + pow(ndh, 14.0) * 0.07 * naCoroa) * sb;
+    float borda = pow(1.0 - max(dot(nt, v), 0.0), 4.0) * mix(0.05, 0.30, naCoroa);
 
     // esmalte fino deixa passar um pouco da cor da dentina
     float fino = 1.0 - clamp(-dente(p - n * 0.12) / 0.12, 0.0, 1.0);
     vec3 cor = base * (ceu * 0.42 * ao + difusa * mix(0.55, 1.0, sb) * 0.72);
     cor += emLinear(uDentina) * fino * 0.10 * naCoroa;
+    // a borda fina do esmalte é translúcida: fica um pouco mais fria e acinzentada
+    cor = mix(cor, cor * vec3(0.90, 0.94, 1.0), fino * 0.35 * naCoroa * (1.0 - cervical));
     cor += vec3(brilho) + ceu * borda * ao;
     resultado = cor;
   }

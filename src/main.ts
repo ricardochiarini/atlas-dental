@@ -183,6 +183,7 @@ interface Rotulo {
   linha: SVGLineElement;
   bola: SVGCircleElement;
   item: HTMLButtonElement; // a entrada no índice
+  tela?: { x: number; y: number } | null; // onde a estrutura está na tela agora, para o clique no dente
 }
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -316,6 +317,7 @@ function posicionaRotulos() {
 
   for (const r of rotulos) {
     let ponto: V | null = null;
+    r.tela = null;
 
     if (ocultos.has(r.e.grupo) && r.e.id !== selecionada) {
       ponto = null;
@@ -345,6 +347,7 @@ function posicionaRotulos() {
 
     const s = projeta(ponto);
     if (s.x < 0 || s.x > largura || s.y < 40 || s.y > altura - 40) { r.botao.classList.remove('on'); r.linha.classList.remove('on', 'sel'); r.bola.classList.remove('on', 'sel'); continue; } // fora da tela ao aproximar
+    r.tela = s;
     (s.x < centro.x && cabeEsquerda ? esq : dir).push({ r, x: s.x, y: s.y, alvoY: s.y });
   }
 
@@ -538,6 +541,7 @@ const entreDedos = () => { const [a, b] = [...dedos.values()]; return Math.hypot
 tela.addEventListener('pointerdown', (e) => {
   dedos.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (dedos.size === 2) pinca = entreDedos();
+  toque = dedos.size === 1 ? { x: e.clientX, y: e.clientY } : null;
   arrastando = true;
   destino = null;
   ultimoX = e.clientX;
@@ -565,7 +569,22 @@ tela.addEventListener('pointermove', (e) => {
   ultimoX = e.clientX;
   ultimoY = e.clientY;
 });
+/* um clique no dente, sem arrastar, escolhe a estrutura mais próxima daquele ponto */
+let toque: { x: number; y: number } | null = null;
+function escolheNoDente(x: number, y: number) {
+  let melhor: Rotulo | null = null;
+  let menor = 70; // alcance do clique, em pixels
+  for (const r of rotulos) {
+    if (!r.tela) continue;
+    const d = Math.hypot(r.tela.x - x, r.tela.y - y);
+    if (d < menor) { menor = d; melhor = r; }
+  }
+  if (melhor) seleciona(melhor.e.id, false);
+}
+
 const solta = (e: PointerEvent) => {
+  if (toque && e.type === 'pointerup' && Math.hypot(e.clientX - toque.x, e.clientY - toque.y) < 5) escolheNoDente(e.clientX, e.clientY);
+  toque = null;
   dedos.delete(e.pointerId);
   pinca = 0;
   arrastando = dedos.size > 0;
