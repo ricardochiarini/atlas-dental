@@ -204,6 +204,11 @@ function montaAtlas() {
   lista.replaceChildren();
   ocultos.clear();
 
+  const legendaGrupos = $<HTMLElement>('#grupos');
+  legendaGrupos.replaceChildren();
+  /* cada grupo tem uma cor, a mesma no nome, na linha, no ponto, no índice e na legenda */
+  const corDe = (g: Grupo) => `var(--g${GRUPOS.indexOf(g)})`;
+
   rotulos = def.estruturas(modelo).map((e) => {
     const botao = document.createElement('button');
     botao.type = 'button';
@@ -215,6 +220,7 @@ function montaAtlas() {
     const linha = svg.appendChild(document.createElementNS(NS, 'line'));
     const bola = svg.appendChild(document.createElementNS(NS, 'circle'));
     bola.setAttribute('r', '3.5');
+    for (const el of [botao, linha, bola]) el.style.setProperty('--cg', corDe(e.grupo));
 
     const item = document.createElement('button');
     item.type = 'button';
@@ -236,11 +242,22 @@ function montaAtlas() {
     cab.setAttribute('aria-pressed', 'true');
     cab.title = 'Mostrar ou esconder os nomes deste grupo no dente';
     cab.innerHTML = `<span>${grupo}</span><i>${doGrupo.length}</i>`;
+    cab.style.setProperty('--cg', corDe(grupo));
+    const naLegenda = document.createElement('button');
+    naLegenda.type = 'button';
+    naLegenda.className = 'leg';
+    naLegenda.textContent = grupo;
+    naLegenda.style.setProperty('--cg', corDe(grupo));
+    naLegenda.setAttribute('aria-pressed', 'true');
+    naLegenda.title = 'Mostrar ou esconder este grupo no dente';
+    naLegenda.addEventListener('click', () => cab.click());
+    legendaGrupos.appendChild(naLegenda);
     cab.addEventListener('click', () => {
       const mostrar = ocultos.has(grupo);
       if (mostrar) ocultos.delete(grupo);
       else ocultos.add(grupo);
       cab.setAttribute('aria-pressed', String(mostrar));
+      naLegenda.setAttribute('aria-pressed', String(mostrar));
       sujo = true;
     });
     lista.appendChild(cab);
@@ -291,7 +308,7 @@ function seleciona(id: string, moverCamera: boolean) {
       destino = { guinada: Math.atan2(n[0], n[2]), inclinacao: THREE.MathUtils.clamp(Math.asin(n[1]) * 0.85, -0.5, 1.15) };
     }
     /* se o grupo estava escondido, volta a mostrar: a pessoa pediu para ver esta estrutura */
-    if (ocultos.delete(r.e.grupo)) lista.querySelector(`.grupo[data-grupo="${r.e.grupo}"]`)?.setAttribute('aria-pressed', 'true');
+    if (ocultos.delete(r.e.grupo)) { lista.querySelector(`.grupo[data-grupo="${r.e.grupo}"]`)?.setAttribute('aria-pressed', 'true'); $('#grupos').children[[...lista.querySelectorAll('.grupo')].findIndex((g) => (g as HTMLElement).dataset.grupo === r.e.grupo)]?.setAttribute('aria-pressed', 'true'); }
   }
   sujo = true;
 }
