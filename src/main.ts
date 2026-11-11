@@ -1,10 +1,14 @@
 /* Página do atlas. O Three.js cuida do contexto WebGL e desenha um único retângulo que
-   cobre a tela; todo o dente é calculado no shader de fragmento (molar.frag). Aqui ficam
-   a câmera em órbita, os planos de corte, os nomes presos ao dente e o controle de desempenho. */
+   cobre a tela; o dente inteiro é calculado no shader de fragmento. A forma de cada dente
+   vem da ficha dele (src/dentes): a mesma ficha gera o código do shader e as funções que o
+   atlas usa para prender os nomes. Aqui ficam a câmera em órbita, os planos de corte, os
+   nomes, a troca de dente pelo odontograma e o controle de desempenho. */
 import * as THREE from 'three';
-import { ESTRUTURAS, GRUPOS, PLANOS, VISTAS, type Estrutura, type Grupo, type Plano } from './atlas';
-import fragmento from './molar.frag?raw';
-import { assenta, dente, escondido, tecido, type V } from './sdf';
+import { GRUPOS, type Dente, type Estrutura, type Grupo, type Plano, type V } from './atlas';
+import base from './base.frag?raw';
+import { carrega, registro, temFicha } from './dentes/catalogo';
+import { glslDoDente, type Modelo } from './modelo';
+import { criaOdontograma } from './odontograma';
 import './estilo.css';
 
 const VERTICE = /* glsl */ `in vec3 position; void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }`;
@@ -33,6 +37,9 @@ const uniformes = {
   uPlano: { value: new THREE.Vector3(0, 0, 1) },
   uCorte: { value: 0.62 },
   uLuz: { value: new THREE.Vector3(-0.5, 0.8, 0.7) },
+  uCentro: { value: new THREE.Vector3() },
+  uRaio: { value: 1.34 },
+  uChao: { value: -1.46 },
   uFundo: { value: new THREE.Color() },
   uEsmalte: { value: new THREE.Color() },
   uDentina: { value: new THREE.Color() },
@@ -43,19 +50,28 @@ const uniformes = {
 
 const cena = new THREE.Scene();
 const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-cena.add(
-  new THREE.Mesh(
-    new THREE.PlaneGeometry(2, 2),
-    new THREE.RawShaderMaterial({ glslVersion: THREE.GLSL3, vertexShader: VERTICE, fragmentShader: fragmento, uniforms: uniformes, depthTest: false, depthWrite: false }),
-  ),
-);
+const quadro3d = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
+cena.add(quadro3d);
+
+/* um material por dente: o shader base com a forma daquele dente no lugar do marcador */
+const materiais = new Map<number, THREE.RawShaderMaterial>();
+function materialDo(def: Dente) {
+  let m = materiais.get(def.fdi);
+  if (!m) {
+    m = new THREE.RawShaderMaterial({ glslVersion: THREE.GLSL3, vertexShader: VERTICE, fragmentShader: base.replace('//@DENTE@', glslDoDente(def)), uniforms: uniformes, depthTest: false, depthWrite: false });
+    materiais.set(def.fdi, m);
+  }
+  return m;
+}
 
 /* ---------- estado ---------- */
-const ALVO = new THREE.Vector3(0, -0.26, 0);
+let def!: Dente;
+let modelo!: Modelo;
+const ALVO = new THREE.Vector3();
 const olhar = { guinada: 0.45, inclinacao: 0.12, velG: 0, velI: 0 };
 let destino: { guinada: number; inclinacao: number } | null = null; // para onde a câmera está indo sozinha
 let distancia = 6.4;
-let plano: Plano = PLANOS[0];
+let plano!: Plano;
 let corte = 0; // 0 = plano fora do dente; 1 = plano no fim do percurso
 let corteAlvo = 0;
 let girando = !reduz;
@@ -119,7 +135,7 @@ function mede() {
   /* no desktop o dente fica à direita do texto; no celular, centralizado, mais longe e mais alto */
   uniformes.uDesloc.value = estreito ? 0 : Math.min(0.42, (largura / altura) * 0.24);
   distancia = estreito ? Math.max(7.4, 6.0 / Math.min(1, (largura / altura) * 1.45)) : 6.4;
-  ALVO.y = estreito ? -0.62 : -0.26;
+  if (def) ALVO.set(def.centro[0], def.centro[1] - (estreito ? 0.36 : 0), def.centro[2]);
   const dpr = Math.min(devicePixelRatio || 1, 1.5) * escala;
   renderer.setPixelRatio(dpr);
   renderer.setSize(largura, altura, false);
@@ -143,50 +159,60 @@ const svg = $<SVGSVGElement>('#linhas');
 const camadaRotulos = $<HTMLElement>('#rotulos');
 const lista = $<HTMLElement>('#lista');
 const painel = $<HTMLElement>('.folha');
+let rotulos: Rotulo[] = [];
 
-const rotulos: Rotulo[] = ESTRUTURAS.map((e) => {
-  const botao = document.createElement('button');
-  botao.type = 'button';
-  botao.className = 'rot';
-  botao.textContent = e.nome;
-  botao.addEventListener('click', () => seleciona(e.id, false));
-  camadaRotulos.appendChild(botao);
+function montaAtlas() {
+  camadaRotulos.replaceChildren();
+  svg.replaceChildren();
+  lista.replaceChildren();
+  ocultos.clear();
 
-  const linha = svg.appendChild(document.createElementNS(NS, 'line'));
-  const bola = svg.appendChild(document.createElementNS(NS, 'circle'));
-  bola.setAttribute('r', '3.5');
+  rotulos = def.estruturas(modelo).map((e) => {
+    const botao = document.createElement('button');
+    botao.type = 'button';
+    botao.className = 'rot';
+    botao.textContent = e.nome;
+    botao.addEventListener('click', () => seleciona(e.id, false));
+    camadaRotulos.appendChild(botao);
 
-  const item = document.createElement('button');
-  item.type = 'button';
-  item.className = 'item';
-  item.textContent = e.nome;
-  item.addEventListener('click', () => seleciona(e.id, true));
+    const linha = svg.appendChild(document.createElementNS(NS, 'line'));
+    const bola = svg.appendChild(document.createElementNS(NS, 'circle'));
+    bola.setAttribute('r', '3.5');
 
-  return { e, ancoras: (e.externas ?? []).map(([p, n]) => assenta(p, n)), botao, linha, bola, item };
-});
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'item';
+    item.textContent = e.nome;
+    item.addEventListener('click', () => seleciona(e.id, true));
 
-/* Índice: um bloco por grupo. O cabeçalho liga e desliga os nomes daquele grupo no dente. */
-for (const grupo of GRUPOS) {
-  const doGrupo = rotulos.filter((r) => r.e.grupo === grupo);
-  const cab = document.createElement('button');
-  cab.type = 'button';
-  cab.className = 'grupo hud';
-  cab.setAttribute('aria-pressed', 'true');
-  cab.title = 'Mostrar ou esconder os nomes deste grupo no dente';
-  cab.innerHTML = `<span>${grupo}</span><i>${doGrupo.length}</i>`;
-  cab.addEventListener('click', () => {
-    const mostrar = ocultos.has(grupo);
-    if (mostrar) ocultos.delete(grupo);
-    else ocultos.add(grupo);
-    cab.setAttribute('aria-pressed', String(mostrar));
-    sujo = true;
+    return { e, ancoras: (e.externas ?? []).map(([p, n]) => modelo.assenta(p, n)), botao, linha, bola, item };
   });
-  lista.appendChild(cab);
-  for (const r of doGrupo) lista.appendChild(r.item);
-}
-$('#total').textContent = String(ESTRUTURAS.length);
 
-/* Em qual plano e em que ponto uma estrutura interna aparece. Devolve o ponto já sobre o plano. */
+  /* Índice: um bloco por grupo. O cabeçalho liga e desliga os nomes daquele grupo no dente. */
+  for (const grupo of GRUPOS) {
+    const doGrupo = rotulos.filter((r) => r.e.grupo === grupo);
+    if (!doGrupo.length) continue;
+    const cab = document.createElement('button');
+    cab.type = 'button';
+    cab.className = 'grupo hud';
+    cab.dataset.grupo = grupo;
+    cab.setAttribute('aria-pressed', 'true');
+    cab.title = 'Mostrar ou esconder os nomes deste grupo no dente';
+    cab.innerHTML = `<span>${grupo}</span><i>${doGrupo.length}</i>`;
+    cab.addEventListener('click', () => {
+      const mostrar = ocultos.has(grupo);
+      if (mostrar) ocultos.delete(grupo);
+      else ocultos.add(grupo);
+      cab.setAttribute('aria-pressed', String(mostrar));
+      sujo = true;
+    });
+    lista.appendChild(cab);
+    for (const r of doGrupo) lista.appendChild(r.item);
+  }
+  $('#total').textContent = String(rotulos.length);
+}
+
+/* Em que ponto do plano uma estrutura interna aparece. Devolve o ponto já sobre o plano. */
 function pontoNoCorte(e: Estrutura, n: V, h: number): V | null {
   let melhor: V | null = null;
   let menor = e.folga ?? 0.05;
@@ -194,11 +220,17 @@ function pontoNoCorte(e: Estrutura, n: V, h: number): V | null {
     const d = a[0] * n[0] + a[1] * n[1] + a[2] * n[2] - h;
     if (Math.abs(d) >= menor) continue;
     const p: V = [a[0] - n[0] * d, a[1] - n[1] * d, a[2] - n[2] * d];
-    if (e.tecido ? tecido(p) !== e.tecido : dente(p) > -0.001) continue;
+    if (e.tecido ? modelo.tecido(p) !== e.tecido : modelo.dente(p) > -0.001) continue;
     menor = Math.abs(d);
     melhor = p;
   }
   return melhor;
+}
+
+function fichaPadrao() {
+  $('#ficha-grupo').textContent = 'Como usar';
+  $('#ficha-nome').textContent = 'Gire, corte e toque nos nomes';
+  $('#ficha-texto').textContent = 'Arraste o dente para girar. Escolha um plano de corte para ver o interior. Cada nome leva à descrição da estrutura.';
 }
 
 function seleciona(id: string, moverCamera: boolean) {
@@ -214,8 +246,7 @@ function seleciona(id: string, moverCamera: boolean) {
     defineGiro(false);
     if (r.e.internas && !r.ancoras.length) {
       /* escolhe o primeiro corte clássico em que a estrutura aparece */
-      const p = PLANOS.find((pl) => pontoNoCorte(r.e, pl.normal, pl.padrao)) ?? PLANOS[0];
-      abreCorte(p);
+      abreCorte(def.planos.find((pl) => pontoNoCorte(r.e, pl.normal, pl.padrao)) ?? def.planos[0]);
     } else {
       /* gira até a normal da primeira âncora apontar para a câmera */
       const n = r.ancoras[0].n;
@@ -225,7 +256,7 @@ function seleciona(id: string, moverCamera: boolean) {
       destino = { guinada: Math.atan2(n[0], n[2]), inclinacao: THREE.MathUtils.clamp(Math.asin(n[1]) * 0.85, -0.5, 1.15) };
     }
     /* se o grupo estava escondido, volta a mostrar: a pessoa pediu para ver esta estrutura */
-    if (ocultos.delete(r.e.grupo)) lista.querySelectorAll<HTMLElement>('.grupo').forEach((c) => c.textContent?.startsWith(r.e.grupo) && c.setAttribute('aria-pressed', 'true'));
+    if (ocultos.delete(r.e.grupo)) lista.querySelector(`.grupo[data-grupo="${r.e.grupo}"]`)?.setAttribute('aria-pressed', 'true');
   }
   sujo = true;
 }
@@ -265,7 +296,7 @@ function posicionaRotulos() {
         if (a.p[0] * n[0] + a.p[1] * n[1] + a.p[2] * n[2] > h + 0.004) continue; // removido pelo corte
         aux.set(o[0] - a.p[0], o[1] - a.p[1], o[2] - a.p[2]).normalize();
         const deFrente = aux.x * a.n[0] + aux.y * a.n[1] + aux.z * a.n[2];
-        if (deFrente <= melhor || escondido(a.p, a.n, o, n, h)) continue;
+        if (deFrente <= melhor || modelo.escondido(a.p, a.n, o, n, h)) continue;
         melhor = deFrente;
         ponto = a.p;
       }
@@ -284,17 +315,18 @@ function posicionaRotulos() {
     const s = projeta(ponto);
     (s.x < centro.x && cabeEsquerda ? esq : dir).push({ r, x: s.x, y: s.y, alvoY: s.y });
   }
+
   const topo = 70;
   const baseEsq = altura - 60;
   const baseDir = altura - (estreito ? 60 : 215); // deixa lugar para a ficha
 
-  const distribui = (lado: Visivel[], base: number) => {
+  const distribui = (lado: Visivel[], limite: number) => {
     lado.sort((a, b) => a.y - b.y);
-    const vao = Math.min(27, (base - topo) / Math.max(1, lado.length - 1));
+    const vao = Math.min(27, (limite - topo) / Math.max(1, lado.length - 1));
     for (let i = 0; i < lado.length; i++) lado[i].alvoY = Math.max(i ? lado[i - 1].alvoY + vao : topo, lado[i].y);
     /* se passou do limite de baixo, empurra a pilha para cima */
     for (let i = lado.length - 1; i >= 0; i--) {
-      const max = i === lado.length - 1 ? base : lado[i + 1].alvoY - vao;
+      const max = i === lado.length - 1 ? limite : lado[i + 1].alvoY - vao;
       if (lado[i].alvoY > max) lado[i].alvoY = max;
     }
   };
@@ -324,6 +356,8 @@ function posicionaRotulos() {
 const campoCorte = $<HTMLInputElement>('#corte');
 const valorCorte = $<HTMLOutputElement>('#corte-valor');
 const botaoGiro = $<HTMLButtonElement>('#giro');
+let botoesVista: HTMLButtonElement[] = [];
+let botoesPlano: HTMLButtonElement[] = [];
 
 function defineCorte(v: number, imediato: boolean) {
   corteAlvo = THREE.MathUtils.clamp(v, 0, 1);
@@ -347,7 +381,6 @@ botaoGiro.addEventListener('click', () => {
   defineGiro(!girando);
   marca(botoesVista, null);
 });
-botaoGiro.setAttribute('aria-pressed', String(girando));
 
 function marca(botoes: HTMLButtonElement[], ativo: HTMLButtonElement | null) {
   for (const b of botoes) b.setAttribute('aria-pressed', String(b === ativo));
@@ -362,17 +395,6 @@ function chip(caixa: HTMLElement, nome: string, aoClicar: (b: HTMLButtonElement)
   return caixa.appendChild(b);
 }
 
-/* vistas externas: fecham o corte e giram a câmera */
-const botoesVista = Object.entries(VISTAS).map(([nome, [guinada, inclinacao]]) =>
-  chip($('#vistas'), nome, (b) => {
-    defineGiro(false);
-    defineCorte(0, false);
-    destino = { guinada, inclinacao };
-    marca(botoesVista, b);
-    marca(botoesPlano, null);
-  }),
-);
-
 /* cortes: trocam o plano, levam-no à posição clássica e viram a face cortada para a câmera */
 function abreCorte(p: Plano) {
   defineGiro(false);
@@ -384,9 +406,74 @@ function abreCorte(p: Plano) {
   defineCorte(fracaoPadrao(p), false);
   destino = { guinada: p.vista[0], inclinacao: p.vista[1] };
   marca(botoesVista, null);
-  marca(botoesPlano, botoesPlano[PLANOS.indexOf(p)]);
+  marca(botoesPlano, botoesPlano[def.planos.indexOf(p)]);
 }
-const botoesPlano = PLANOS.map((p) => chip($('#planos'), p.nome, () => abreCorte(p)));
+
+function montaControles() {
+  /* vistas externas: fecham o corte e giram a câmera. A guinada 0 olha a face vestibular;
+     mesial e distal trocam de lado conforme o dente é esquerdo ou direito. */
+  const vistas: [string, number, number][] = [
+    ['Vestibular', 0, 0.1],
+    ['Lingual', Math.PI, 0.1],
+    ['Mesial', (-def.lado * Math.PI) / 2, 0.1],
+    ['Distal', (def.lado * Math.PI) / 2, 0.1],
+    ['Oclusal', 0, 1.2],
+  ];
+  $('#vistas').replaceChildren();
+  botoesVista = vistas.map(([nome, guinada, inclinacao]) =>
+    chip($('#vistas'), nome, (b) => {
+      defineGiro(false);
+      defineCorte(0, false);
+      destino = { guinada, inclinacao };
+      marca(botoesVista, b);
+      marca(botoesPlano, null);
+    }),
+  );
+  $('#planos').replaceChildren();
+  botoesPlano = def.planos.map((p) => chip($('#planos'), p.nome, () => abreCorte(p)));
+}
+
+/* ---------- troca de dente ---------- */
+const dialogo = $<HTMLDialogElement>('#arcada');
+const odontograma = criaOdontograma($('#odontograma'), (fdi) => {
+  dialogo.close();
+  location.hash = String(fdi);
+});
+$('#abrir-arcada').addEventListener('click', () => dialogo.showModal());
+$('#fechar-arcada').addEventListener('click', () => dialogo.close());
+
+function abreDente(fdi: number) {
+  if (!temFicha(fdi)) fdi = 36;
+  if (def?.fdi === fdi) return;
+  ({ def, modelo } = carrega(fdi));
+  const reg = registro(fdi)!;
+
+  quadro3d.material = materialDo(def);
+  uniformes.uCentro.value.set(def.centro[0], def.centro[1], def.centro[2]);
+  uniformes.uRaio.value = def.raio;
+  uniformes.uChao.value = def.chao;
+
+  plano = def.planos[0];
+  uniformes.uPlano.value.set(plano.normal[0], plano.normal[1], plano.normal[2]);
+  corte = corteAlvo = 0;
+  selecionada = null;
+  destino = null;
+  olhar.guinada = 0.45 * def.lado;
+  olhar.inclinacao = 0.12;
+
+  $('#dente-num').textContent = `Dente ${fdi}`;
+  $('#dente-nome').textContent = reg.nome;
+  $('#dente-onde').textContent = reg.onde;
+  $('#abrir-arcada').textContent = `Dente ${fdi} · trocar`;
+  document.title = `${fdi} · ${reg.nome} ${reg.onde} · Atlas dental · Ricardo Chiarini`;
+  odontograma.marca(fdi);
+
+  montaAtlas();
+  montaControles();
+  fichaPadrao();
+  defineCorte(0, true);
+  mede();
+}
 
 /* ---------- ponteiro e teclado ---------- */
 let ultimoX = 0;
@@ -496,11 +583,12 @@ function quadro(agora: number) {
 
 /* ---------- partida ---------- */
 addEventListener('resize', mede);
+addEventListener('hashchange', () => abreDente(Number(location.hash.slice(1))));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', leCores);
 document.addEventListener('visibilitychange', () => (visivel = !document.hidden));
 
 leCores();
-mede();
-defineCorte(0, true);
+botaoGiro.setAttribute('aria-pressed', String(girando));
+abreDente(Number(location.hash.slice(1)) || 36);
 atualizaCamera();
 requestAnimationFrame(quadro);

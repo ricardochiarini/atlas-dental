@@ -1,7 +1,6 @@
-// Anatomia de um molar inferior (dente 36), desenhada por distância (SDF) e percorrida raio a raio.
-// Não há malha nem textura: o dente é a função dente(p), que diz a que distância um ponto
-// está da superfície. As camadas (esmalte, dentina, polpa, cemento) são regiões dessa função.
-// ATENÇÃO: src/sdf.ts repete estas fórmulas para o atlas. Mudou aqui, muda lá.
+// Shader base do atlas. O dente é desenhado por distância (SDF) e percorrido raio a raio:
+// não há malha nem textura. A forma de cada dente (dente, polpa, jac, espessura) é gerada
+// a partir da ficha dele em src/dentes e entra no marcador mais abaixo.
 precision highp float;
 
 uniform vec2 uRes;
@@ -13,11 +12,12 @@ uniform vec3 uPlano;     // normal do plano de corte (aponta para a parte removi
 uniform float uCorte;    // posição do plano: sai tudo em que dot(p, uPlano) > uCorte
 uniform vec3 uLuz;
 uniform vec3 uFundo, uEsmalte, uDentina, uPolpa, uCemento, uTinta;
+uniform vec3 uCentro;    // centro e raio da esfera que envolve o dente
+uniform float uRaio;
+uniform float uChao;     // altura do chão, onde cai a sombra
 
 out vec4 saida;
 
-const vec3 CENTRO = vec3(0.0, -0.26, 0.0);
-const float CHAO = -1.46;
 
 // ---------- peças ----------
 float smin(float a, float b, float k) { float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
@@ -38,64 +38,8 @@ float sdCone(vec3 p, vec3 a, vec3 b, float r1, float r2) {
   return (sqrt(x2 * a2 * il2) + y * rr) * il2 - r1;
 }
 
-// as raízes se curvam para distal (x positivo) à medida que descem
-vec3 dobra(vec3 p) { float t = clamp(-p.y / 1.3, 0.0, 1.0); p.x -= 0.10 * t * t; return p; }
-
-// ---------- o dente ----------
-// Eixos: x é mesial (−) → distal (+), y é apical (−) → oclusal (+), z é lingual (−) → vestibular (+).
-float coroa(vec3 p) {
-  // estreitamento em direção ao colo
-  float colo = mix(0.80, 1.0, smoothstep(-0.05, 0.42, p.y));
-  vec3 q = p - vec3(0.0, 0.34, 0.0); q.xz /= colo;
-  float d = sdCaixa(q, vec3(0.30, 0.17, 0.25), 0.21) * colo;
-
-  // cinco cúspides: mésio-vestibular, médio-vestibular, disto-vestibular, mésio-lingual, disto-lingual
-  d = smin(d, length(p - vec3(-0.30, 0.60, 0.22)) - 0.17, 0.12);
-  d = smin(d, length(p - vec3(0.04, 0.59, 0.24)) - 0.16, 0.12);
-  d = smin(d, length(p - vec3(0.35, 0.54, 0.15)) - 0.14, 0.12);
-  d = smin(d, length(p - vec3(-0.28, 0.63, -0.22)) - 0.17, 0.12);
-  d = smin(d, length(p - vec3(0.20, 0.61, -0.22)) - 0.17, 0.12);
-
-  // fosseta central e sulcos: mésio-distal, mésio-vestibular, disto-vestibular e lingual
-  d = smax(d, -sdElipse(p - vec3(0.02, 0.80, 0.0), vec3(0.34, 0.15, 0.13)), 0.10);
-  d = smax(d, -sdCapsula(p, vec3(-0.36, 0.745, 0.0), vec3(0.40, 0.705, 0.0), 0.040), 0.07);
-  d = smax(d, -sdCapsula(p, vec3(-0.12, 0.735, 0.0), vec3(-0.13, 0.62, 0.44), 0.034), 0.07);
-  d = smax(d, -sdCapsula(p, vec3(0.22, 0.715, 0.0), vec3(0.21, 0.58, 0.42), 0.032), 0.07);
-  d = smax(d, -sdCapsula(p, vec3(-0.04, 0.735, 0.0), vec3(-0.04, 0.62, -0.44), 0.034), 0.07);
-  return d;
-}
-
-float raizes(vec3 p) {
-  vec3 q = dobra(p); q.z *= 0.86; // raízes mais largas no sentido vestíbulo-lingual
-  float mesial = sdCone(q, vec3(-0.25, 0.10, 0.0), vec3(-0.34, -1.30, 0.0), 0.26, 0.055);
-  float distal = sdCone(q, vec3(0.25, 0.10, 0.0), vec3(0.30, -1.20, 0.0), 0.24, 0.055);
-  return smin(mesial, distal, 0.10);
-}
-
-float dente(vec3 p) { return smin(coroa(p), raizes(p), 0.13); }
-
-// Cavidade pulpar: câmara, um corno para cada cúspide e três canais.
-// A raiz mesial tem dois canais (mésio-vestibular e mésio-lingual); a distal, um só, achatado.
-float polpa(vec3 p) {
-  float d = sdElipse(p - vec3(0.0, 0.17, 0.0), vec3(0.22, 0.10, 0.14));
-  d = smin(d, sdCone(p, vec3(-0.16, 0.20, 0.10), vec3(-0.26, 0.40, 0.19), 0.045, 0.014), 0.05);
-  d = smin(d, sdCone(p, vec3(0.09, 0.20, 0.10), vec3(0.06, 0.39, 0.20), 0.042, 0.014), 0.05);
-  d = smin(d, sdCone(p, vec3(0.17, 0.19, 0.07), vec3(0.30, 0.34, 0.13), 0.035, 0.012), 0.05);
-  d = smin(d, sdCone(p, vec3(-0.15, 0.20, -0.10), vec3(-0.25, 0.42, -0.19), 0.045, 0.014), 0.05);
-  d = smin(d, sdCone(p, vec3(0.12, 0.20, -0.10), vec3(0.19, 0.40, -0.19), 0.042, 0.014), 0.05);
-  vec3 q = dobra(p);
-  // os canais vão até a superfície do ápice: é ali que se abre o forame apical
-  d = smin(d, sdCone(q, vec3(-0.19, 0.11, 0.085), vec3(-0.340, -1.345, 0.025), 0.036, 0.010), 0.05);
-  d = smin(d, sdCone(q, vec3(-0.19, 0.11, -0.085), vec3(-0.340, -1.345, -0.025), 0.036, 0.010), 0.05);
-  d = smin(d, sdCone(vec3(q.x, q.y, q.z * 0.62), vec3(0.20, 0.11, 0.0), vec3(0.300, -1.245, 0.0), 0.048, 0.011), 0.05);
-  return d;
-}
-
-// junção amelocementária: a linha onde o esmalte termina, levemente ondulada
-float jac(vec3 p) { return 0.05 + 0.035 * cos(2.0 * atan(p.z, p.x)); }
-
-// espessura do esmalte: maior nas cúspides, afinando até zero no colo
-float espessura(vec3 p) { float c = jac(p); return (0.085 + 0.05 * smoothstep(0.35, 0.70, p.y)) * smoothstep(c, c + 0.22, p.y); }
+// ---------- o dente (gerado a partir da ficha) ----------
+//@DENTE@
 
 float cena(vec3 p) { return max(dente(p), dot(p, uPlano) - uCorte); }
 
@@ -142,7 +86,7 @@ vec3 tinge(vec3 p, vec3 rd, float px) {
     float w = px * 1.4;
 
     vec3 cor = emLinear(uDentina) * (1.0 + 0.045 * sin(dp * 85.0)); // linhas incrementais da dentina
-    float cem = smoothstep(-0.022 - w, -0.022 + w, dt) * smoothstep(c + 0.05, c - 0.01, p.y);
+    float cem = smoothstep(-CEMENTO - w, -CEMENTO + w, dt) * smoothstep(c + 0.05, c - 0.01, p.y);
     cor = mix(cor, emLinear(uCemento), cem);
     float esm = esp > 0.004 ? smoothstep(-esp - w, -esp + w, dt) : 0.0;
     cor = mix(cor, emLinear(uEsmalte), esm);
@@ -188,14 +132,14 @@ void main() {
   // fundo: a cor da página, com a sombra do dente no chão
   vec3 fundo = emLinear(uFundo);
   if (rd.y < 0.0) {
-    vec3 g = ro + rd * ((CHAO - ro.y) / rd.y);
+    vec3 g = ro + rd * ((uChao - ro.y) / rd.y);
     float s = exp(-dot(g.xz * vec2(1.0, 1.35), g.xz * vec2(1.0, 1.35)) * 1.9);
     fundo = mix(fundo, vec3(0.0), s * 0.30);
   }
 
   // só percorre o raio dentro da esfera que envolve o dente
-  vec3 oc = ro - CENTRO;
-  float b = dot(oc, rd), cc = dot(oc, oc) - 1.34 * 1.34, disc = b * b - cc;
+  vec3 oc = ro - uCentro;
+  float b = dot(oc, rd), cc = dot(oc, oc) - uRaio * uRaio, disc = b * b - cc;
   vec3 cor = fundo;
 
   if (disc > 0.0) {

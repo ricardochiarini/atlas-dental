@@ -1,36 +1,56 @@
-# Anatomia de um molar
+# Atlas dental em WebGL
 
-Um primeiro molar inferior em WebGL que dá para girar e abrir em corte, do esmalte à polpa. Faz parte do laboratório de [ricardochiarini.com](https://ricardochiarini.com/lab).
+Atlas de anatomia dental que roda no navegador: cada dente pode ser girado, aberto em três planos de corte e tem as estruturas nomeadas e descritas. Faz parte do laboratório de [ricardochiarini.com](https://ricardochiarini.com/lab).
 
-**Não há modelo 3D.** Nenhuma malha, textura ou arquivo importado: o dente inteiro é uma função matemática, avaliada em cada pixel por um shader.
+**Não há modelo 3D.** Nenhuma malha, textura ou arquivo importado: cada dente é uma função matemática, avaliada em cada pixel por um shader.
+
+Dentes prontos: **36** e **46** (primeiro molar inferior). Os demais aparecem no odontograma como "em preparação".
 
 ## Como funciona
 
 A técnica é a de campos de distância (SDF) com marcha de raios.
 
-- `dente(p)` devolve a distância de um ponto qualquer até a superfície do dente. Ela é montada somando e subtraindo formas simples com transições suaves: uma caixa arredondada para a coroa, cinco esferas para as cúspides, uma elipse e quatro cápsulas subtraídas para a fossa e os sulcos, e dois cones para as raízes.
-- Para cada pixel sai um raio da câmera. Ele avança de acordo com a distância que a função informa, até encostar na superfície.
-- **O corte** é a interseção do dente com um meio-espaço: `max(dente(p), p.z - corte)`. Custa uma linha.
-- **As camadas** são regiões da mesma função. O esmalte é a faixa próxima da superfície, acima da junção amelocementária e mais espessa nas cúspides. A polpa é outra função de distância (câmara, cornos e canais). O cemento é uma faixa fina sobre a raiz. O que sobra é dentina.
-- A luz usa a própria função: oclusão e sombra suave saem de amostras da distância, sem mapas.
+- A função `dente(p)` devolve a distância de um ponto qualquer até a superfície. Ela é montada somando e subtraindo formas simples com transições suaves: caixa arredondada para a coroa, esferas para as cúspides, cápsulas escavadas para os sulcos, cones para as raízes.
+- Para cada pixel sai um raio da câmera, que avança de acordo com a distância informada até encostar na superfície.
+- **O corte** é a interseção do dente com um meio-espaço: `max(dente(p), dot(p, plano) - posição)`.
+- **Os tecidos** são regiões da mesma função. O esmalte é a faixa próxima da superfície, acima da junção amelocementária e mais espessa nas cúspides. A cavidade pulpar é outra função de distância (câmara, cornos e canais). O cemento é uma faixa fina sobre a raiz. O que sobra é dentina.
 
-Tudo isso está em [`src/molar.frag`](src/molar.frag), comentado.
+## Um dente é uma ficha de dados
 
-## O resto
+A forma de cada dente é escrita **uma única vez**, como uma árvore de peças ([`src/no.ts`](src/no.ts)). Dessa árvore saem duas coisas:
 
-[`src/main.ts`](src/main.ts) cuida do que não é desenho:
+- o **código GLSL** que o shader usa para desenhar (`emite`);
+- as **mesmas funções em TypeScript** (`avalia`), que o atlas usa para prender cada nome no ponto exato da superfície, saber que tecido existe num ponto do corte e esconder os nomes que ficam atrás do dente.
 
-- **Câmera em órbita** com inércia, por mouse, toque ou setas do teclado.
-- **Rótulos presos ao dente.** O JavaScript repete a projeção da câmera do shader para saber onde cada ponto do corte cai na tela.
-- **Cores compartilhadas.** O shader lê as mesmas variáveis CSS da página, então o dente acompanha os temas claro e escuro.
-- **Desenho sob demanda.** Um quadro só é calculado quando algo muda. Se o aparelho não acompanhar, a resolução interna cai aos poucos.
-- **Movimento reduzido.** Com essa preferência no sistema, o giro automático e a abertura animada do corte ficam desligados.
+Com isso, desenho e rótulos nunca saem de sincronia.
 
-O Three.js entra só para criar o contexto WebGL e desenhar o retângulo que cobre a tela.
+| Arquivo | Papel |
+|---|---|
+| [`src/no.ts`](src/no.ts) | As peças (esfera, caixa, cone...), as operações (unir, escavar, curvar, espelhar) e os dois geradores. |
+| [`src/dentes/molar-inferior-1.ts`](src/dentes/molar-inferior-1.ts) | A ficha do primeiro molar inferior: forma, cavidade pulpar, planos de corte e as 52 estruturas nomeadas. |
+| [`src/dentes/catalogo.ts`](src/dentes/catalogo.ts) | Os 32 dentes na notação FDI. O lado direito é o espelho do esquerdo, com rótulos e cortes espelhados juntos. |
+| [`src/modelo.ts`](src/modelo.ts) | As funções de um dente em TypeScript: tecido, normal, assentar um ponto na superfície, teste de oclusão. |
+| [`src/base.frag`](src/base.frag) | O shader comum: marcha de raios, luz, sombra e a pintura dos tecidos no corte. |
+| [`src/odontograma.ts`](src/odontograma.ts) | As duas arcadas em vista oclusal, para trocar de dente. |
+| [`src/main.ts`](src/main.ts) | Câmera, cortes, posicionamento dos nomes e troca de dente pelo endereço (`#36`). |
+
+## O atlas
+
+- **Nomes presos ao dente.** Cada estrutura externa tem âncoras na superfície; aparece a que estiver virada para a câmera e não estiver escondida.
+- **Nomes no corte.** Cada estrutura interna é um conjunto de pontos em 3D. Em qualquer posição do plano, o nome aparece onde a estrutura de fato cruza o corte.
+- **Três planos:** mésio-distal, vestíbulo-lingual e transversal, com posição ajustável.
+- **Cinco vistas:** vestibular, lingual, mesial, distal e oclusal.
+- **Índice por grupo**, com chave para mostrar ou esconder os nomes de cada grupo.
+
+## Outros cuidados
+
+- **Desenho sob demanda:** um quadro só é calculado quando algo muda. Se o aparelho não acompanhar, a resolução interna cai aos poucos.
+- **Cores compartilhadas:** o shader lê as mesmas variáveis CSS da página, então acompanha os temas claro e escuro.
+- **Movimento reduzido:** com essa preferência no sistema, as animações de câmera e de corte ficam desligadas. `?semanim` no endereço faz o mesmo.
 
 ## Limites
 
-É uma ilustração esquemática, não material clínico. A raiz mesial foi desenhada com um canal só, e o corte é sempre no plano mésio-distal.
+É uma ilustração esquemática, não material clínico. A nomenclatura segue a escola brasileira de anatomia dental e está em revisão.
 
 ## Rodar
 

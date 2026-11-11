@@ -3,24 +3,25 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Anatomia de um molar · Ricardo Chiarini</title>
-    <meta name="description" content="Atlas de um molar inferior em WebGL: cúspides, sulcos, raízes e, em corte, esmalte, dentina e polpa. Desenhado inteiro em um shader, sem modelo 3D." />
+    <title>Atlas dental · Ricardo Chiarini</title>
+    <meta name="description" content="Atlas de anatomia dental em WebGL: cada dente com suas faces, cúspides, sulcos, raízes e, em corte, esmalte, dentina e cavidade pulpar. Desenhado inteiro em shader, sem modelo 3D." />
     <meta name="theme-color" content="#16130F" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#E8E0CF" media="(prefers-color-scheme: light)" />
   </head>
   <body>
-    <canvas id="tela" tabindex="0" aria-label="Molar em três dimensões. Arraste ou use as setas do teclado para girar." role="img"></canvas>
+    <canvas id="tela" tabindex="0" aria-label="Dente em três dimensões. Arraste ou use as setas do teclado para girar." role="img"></canvas>
 
     <!-- linhas e nomes presos ao dente; o JavaScript cria e posiciona um por estrutura -->
     <svg id="linhas" aria-hidden="true"></svg>
     <div id="rotulos"></div>
 
     <main class="folha">
-      <p class="hud">Laboratório · WebGL · sem modelo 3D</p>
-      <h1>Anatomia de <em>um molar</em></h1>
+      <p class="hud"><span id="dente-num">Dente 36</span> · Atlas dental · WebGL</p>
+      <h1><span id="dente-nome">Primeiro molar</span> <em id="dente-onde">inferior esquerdo</em></h1>
       <p class="texto">
-        Primeiro molar inferior esquerdo (dente 36), do esmalte à polpa. O dente inteiro é uma função matemática calculada em cada pixel: não há malha, textura nem arquivo 3D.
+        O dente inteiro é uma função matemática calculada em cada pixel: não há malha, textura nem arquivo 3D.
       </p>
+      <button id="abrir-arcada" type="button" class="hud chave trocar">Dente 36 · trocar</button>
 
       <div class="controles">
         <label class="hud" for="corte">Posição do corte <output id="corte-valor">sem corte</output></label>
@@ -45,10 +46,19 @@
     </main>
 
     <aside id="ficha" aria-live="polite">
-      <p class="hud" id="ficha-grupo">Como usar</p>
-      <h2 id="ficha-nome">Gire, corte e toque nos nomes</h2>
-      <p id="ficha-texto">Arraste o dente para girar. Escolha um plano de corte para ver o interior. Cada nome leva à descrição da estrutura.</p>
+      <p class="hud" id="ficha-grupo"></p>
+      <h2 id="ficha-nome"></h2>
+      <p id="ficha-texto"></p>
     </aside>
+
+    <dialog id="arcada" aria-labelledby="arcada-titulo">
+      <header>
+        <h2 id="arcada-titulo">Escolha o dente</h2>
+        <button id="fechar-arcada" type="button" class="hud chave">Fechar</button>
+      </header>
+      <div id="odontograma"></div>
+      <p class="hud">Dentição permanente · notação FDI · os dentes esmaecidos estão em preparação</p>
+    </dialog>
 
     <footer class="base hud">
       <a href="https://ricardochiarini.com/lab">← Laboratório</a>

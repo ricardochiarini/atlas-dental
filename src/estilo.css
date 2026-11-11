@@ -36,9 +36,28 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .folha { position: fixed; left: clamp(16px, 4vw, 56px); top: clamp(20px, 5vh, 56px); bottom: 56px; width: min(380px, 34vw); display: flex; flex-direction: column; pointer-events: none; }
 .folha > * { pointer-events: auto; flex: none; }
 .folha > .hud { color: var(--mut); margin: 0 0 14px; }
-h1 { margin: 0; font: 400 clamp(40px, 5vw, 76px)/.95 var(--f-s); text-transform: uppercase; letter-spacing: -.01em; }
+h1 { margin: 0; font: 400 clamp(36px, 4.2vw, 64px)/.95 var(--f-s); text-transform: uppercase; letter-spacing: -.01em; }
 h1 em { display: block; color: var(--ac); text-transform: none; }
 .texto { margin: 18px 0 0; max-width: 36ch; color: var(--mut); font-size: 15px; }
+
+.trocar { margin-top: 16px; align-self: flex-start; }
+
+/* Odontograma: as duas arcadas em vista oclusal */
+#arcada { width: min(440px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--fg); border-radius: 14px; background: var(--bg); color: var(--fg); }
+#arcada::backdrop { background: color-mix(in srgb, var(--bg) 78%, transparent); }
+#arcada header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+#arcada h2 { margin: 0; font: 400 30px/1 var(--f-s); }
+#arcada > p { margin: 6px 0 0; color: var(--mut); text-align: center; }
+#odontograma svg { display: block; width: 100%; height: auto; }
+#odontograma .dente rect { fill: none; stroke: var(--mut); stroke-width: 1; opacity: .45; }
+#odontograma .dente text { fill: var(--mut); font: 500 9px var(--f-mono); opacity: .55; }
+#odontograma .pronto { cursor: pointer; outline-offset: 4px; }
+#odontograma .pronto rect { fill: var(--esmalte); stroke: var(--fg); stroke-width: 1.4; opacity: 1; transition: fill .15s var(--ease); }
+#odontograma .pronto text { fill: var(--fg); font-weight: 700; opacity: 1; }
+#odontograma .pronto[aria-current="true"] rect { fill: var(--ac); stroke: var(--ac); }
+#odontograma .pronto[aria-current="true"] text { fill: var(--ac); }
+@media (hover: hover) { #odontograma .pronto:hover rect { fill: var(--polpa); } }
+#odontograma .legenda { fill: var(--mut); font: 500 8px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; }
 
 .controles { display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; align-items: center; margin-top: 22px; max-width: 330px; }
 .controles label { display: flex; justify-content: space-between; grid-column: 1 / -1; color: var(--mut); margin: 0; }
