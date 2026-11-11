@@ -130,7 +130,7 @@ function leCores() {
   cor('--polpa', uniformes.uPolpa.value);
   cor('--cemento', uniformes.uCemento.value);
   cor('--fg', uniformes.uTinta.value);
-  cor('--ac', uniformes.uAcento.value);
+  cor('--regiao', uniformes.uAcento.value);
   sujo = true;
 }
 

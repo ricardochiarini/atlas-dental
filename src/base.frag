@@ -189,7 +189,7 @@ vec3 tinge(vec3 p, vec3 rd, float px) {
         m = smoothstep(uRegN.x - 0.02, uRegN.x + 0.02, p.y);
       }
       // no cemento, que é escuro, a tinta precisa ser mais forte para aparecer
-      base = mix(base, emLinear(uAcento), mix(0.8, 0.6, naCoroa) * m);
+      base = mix(base, emLinear(uAcento), mix(0.92, 0.82, naCoroa) * m);
     }
 
     // ---- textura: só aparece quando o pixel é menor que o detalhe, para não cintilar de longe ----
