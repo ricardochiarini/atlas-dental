@@ -40,7 +40,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .cabeca > * { pointer-events: auto; }
 .cabeca span { font: 400 17px/1 var(--f-s); text-transform: uppercase; letter-spacing: .03em; }
 .cabeca a { color: var(--mut); text-decoration: none; transition: color .15s var(--ease); }
-.cabeca a::before { content: ""; display: inline-block; width: 18px; height: 1px; margin-right: 9px; vertical-align: .3em; background: currentColor; }
+.cabeca nav { display: flex; align-items: center; gap: 22px; }
+/* a roda do mouse aqui aproxima o dente em vez de rolar a página: a saída precisa ser um botão evidente */
+.cabeca .voltar { padding: 8px 16px; border: 1px solid var(--fg); color: var(--fg); background: var(--bg); transition: background .15s var(--ease), color .15s var(--ease); }
+.cabeca a:not(.voltar)::before { content: ""; display: inline-block; width: 18px; height: 1px; margin-right: 9px; vertical-align: .3em; background: currentColor; }
 
 /* ---------- coluna de identificação e comandos ---------- */
 .folha { position: fixed; left: var(--margem); top: 64px; bottom: 54px; width: min(420px, 34vw); display: flex; flex-direction: column; align-items: flex-start; pointer-events: none; }
@@ -135,6 +138,7 @@ h1 em { display: block; margin-top: .06em; color: var(--ac); text-transform: non
 #ficha h2:empty { display: none; }
 #ficha h2:empty + p { margin: 0; font: italic 400 19px/1.3 var(--f-s); }
 
+.base a { pointer-events: auto; color: var(--fg); transition: color .15s var(--ease); }
 .base { position: fixed; left: var(--margem); right: var(--margem); bottom: 16px; display: flex; gap: 6px 28px; justify-content: space-between; color: var(--mut); font-size: 12.5px; line-height: 1.3; pointer-events: none; }
 
 /* ---------- odontograma ---------- */
@@ -158,7 +162,8 @@ h1 em { display: block; margin-top: .06em; color: var(--ac); text-transform: non
 #mini .pronto[aria-current="true"] rect { fill: var(--ac); stroke: var(--ac); opacity: 1; }
 
 @media (hover: hover) {
-  .cabeca a:hover, .opcao:hover, .item:hover, .rot:hover { color: var(--ac); }
+  .cabeca .voltar:hover { background: var(--fg); color: var(--bg); }
+  .base a:hover, .cabeca a:not(.voltar):hover, .opcao:hover, .item:hover, .rot:hover { color: var(--ac); }
   .arcada:hover > span:last-child { text-decoration-color: var(--ac); }
   .grupo:hover { color: var(--ac); }
   #odontograma .pronto:hover rect, #arcada-painel .pronto:hover rect { fill: var(--polpa); }
@@ -183,7 +188,9 @@ h1 em { display: block; margin-top: .06em; color: var(--ac); text-transform: non
    Não há espaço para colunas de nomes: cada estrutura vira um ponto tocável sobre o dente,
    e o nome aparece na nota, embaixo. A identificação sobe e os comandos descem. */
 @media (max-width: 860px) {
-  .cabeca { top: 12px; }
+  .cabeca { top: 8px; align-items: center; }
+  .cabeca nav a:not(.voltar) { display: none; }
+  .cabeca .voltar { padding: 6px 12px; font-size: 13.5px; }
   .folha { position: static; width: auto; }
   h1 { position: fixed; left: var(--margem); right: var(--margem); top: 44px; display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: end; font-size: 21px; }
   #dente-num { grid-row: 1 / 3; margin: 0; font-size: 62px; line-height: .78; }
