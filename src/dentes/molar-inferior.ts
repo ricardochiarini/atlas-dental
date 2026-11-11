@@ -46,7 +46,7 @@ const sinal = (v: number) => (v < 0 ? -1 : 1);
 /* o sulco que separa duas cúspides e desce para a face é aberto por cima: três cápsulas
    empilhadas formam uma fenda, em vez de um túnel sob a união das cúspides */
 const sobe = (p: V, h: number): V => [p[0], p[1] + h, p[2]];
-const fenda = (s: { a: V; b: V; r: number }): No[] => [0, 0.1, 0.2].map((h) => capsula(sobe(s.a, h), sobe(s.b, h), s.r * (1 + h * 1.5)));
+const fenda = (s: { a: V; b: V; r: number }): No[] => ([[0, 1 * s.r], [0.07, Math.max(s.r, 0.045)], [0.15, Math.max(s.r, 0.06)]] as const).map(([h, r]) => capsula(sobe(s.a, h), sobe(s.b, h), r)); // cada nível encosta no de baixo: com vão entre eles o sulco vira túnel
 /* um sulco que chega à face livre continua por ela, cada vez mais raso, até sumir no terço médio */
 const desceFace = (s: { b: V; r: number; face?: V }): No => { const p0 = s.face ?? s.b; return cone(p0, [p0[0], p0[1] - 0.3, p0[2] + Math.sign(p0[2]) * 0.035], s.r * 0.8, 0.004); };
 

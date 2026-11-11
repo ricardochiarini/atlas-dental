@@ -73,16 +73,18 @@ export function ajustaCuspide<C extends { c: V; r: number }>(c: C, hx: number, h
   if (r < rMin) { y -= rMin - r; r = rMin; }
   return { ...c, c: [x, y, z], r };
 }
-export function aprofunda<S extends { a: V; b: V; r: number; desce?: boolean; face?: V }>(s: S, _hx: number, hz: number): S {
-  const a: V = [s.a[0], s.a[1] - 0.06, s.a[2]];
-  if (!s.desce) return { ...s, a, b: [s.b[0], s.b[1] - 0.06, s.b[2]], r: s.r * 1.4 };
+export function aprofunda<S extends { a: V; b: V; r: number; desce?: boolean; face?: V }>(s: S, hx: number, hz: number): S {
+  /* o sulco principal para antes das cristas marginais, que fecham a face oclusal */
+  const lim = (x: number) => Math.max(-(hx - 0.2), Math.min(hx - 0.2, x));
+  const a: V = [lim(s.a[0]), s.a[1] - 0.06, s.a[2]];
+  if (!s.desce) return { ...s, a, b: [lim(s.b[0]), s.b[1] - 0.06, s.b[2]], r: s.r * 1.1 };
   /* na face livre o sulco é raso: só a ponta de dentro desce */
   const b: V = [s.b[0], s.b[1] + 0.03, s.b[2]];
   /* o sulco que desce para uma face livre precisa atravessar a borda da coroa: se parasse
      dentro da parede, apareceria como um furo redondo em vez de um entalhe */
   const sz = Math.sign(b[2]) || 1;
   const face: V = [b[0], b[1], sz * (hz + 0.012)];
-  return { ...s, a, b: [b[0], b[1], sz * (hz + 0.07)], r: s.r * 1.15, face };
+  return { ...s, a, b: [b[0], b[1], sz * (hz + 0.07)], r: s.r * 0.9, face };
 }
 /** corpo da coroa dos molares: mais baixo que as cúspides e de cantos bem arredondados */
 export const blocoMolar = (c: { b: V; r: number }): No => {
@@ -96,7 +98,7 @@ export const blocoMolar = (c: { b: V; r: number }): No => {
 /* o sulco que separa duas cúspides e desce para a face é aberto por cima: três cápsulas
    empilhadas formam uma fenda, em vez de um túnel sob a união das cúspides */
 const sobe = (p: V, h: number): V => [p[0], p[1] + h, p[2]];
-const fenda = (s: { a: V; b: V; r: number }): No[] => [0, 0.1, 0.2].map((h) => capsula(sobe(s.a, h), sobe(s.b, h), s.r * (0.8 + h * 1.2)));
+const fenda = (s: { a: V; b: V; r: number }): No[] => ([[0, 0.8 * s.r], [0.07, Math.max(s.r, 0.045)], [0.15, Math.max(s.r, 0.06)]] as const).map(([h, r]) => capsula(sobe(s.a, h), sobe(s.b, h), r)); // cada nível encosta no de baixo: com vão entre eles o sulco vira túnel
 /* um sulco que chega à face livre continua por ela, cada vez mais raso, até sumir no terço médio */
 const desceFace = (s: { b: V; r: number; face?: V }): No => { const p0 = s.face ?? s.b; return cone(p0, [p0[0], p0[1] - 0.2, p0[2] + Math.sign(p0[2]) * 0.03], s.r * 0.5, 0.004); };
 
@@ -124,7 +126,7 @@ export function molarSuperior(p: MolarSuperior): Dente {
     ...p.cuspides.map((c) => esfera(c.c, c.r)),
     ...(p.ponte ? [capsula(p.ponte.a, p.ponte.b, p.ponte.r)] : []),
   );
-  const escavado = cava(0.07, une(0.06, cava(0.09, macico, ...p.fossetas.map((f) => elipse(f.c, f.r))), ...p.cuspides.map((c) => capsula(...cristaDe(c), 0.04))), ...p.sulcos.flatMap((s) => (s.desce ? [...fenda(s), desceFace(s)] : [capsula(s.a, s.b, s.r)])));
+  const escavado = cava(0.05, une(0.06, cava(0.09, macico, ...p.fossetas.map((f) => elipse(f.c, f.r))), ...p.cuspides.map((c) => capsula(...cristaDe(c), 0.04))), ...p.sulcos.flatMap((s) => (s.desce ? [...fenda(s), desceFace(s)] : [capsula(s.a, s.b, s.r)])));
   const coroa = p.tuberculo ? une(0.05, escavado, esfera(p.tuberculo.c, p.tuberculo.r)) : escavado;
   const macicas = une(p.uniao, ...p.raizes.flatMap((r) => [cone(r.a, r.b, r.r1, r.r2), ...(r.gemea ? [cone(r.gemea[0], r.gemea[1], r.r1, r.r2)] : [])]));
   const raizes = naRaiz(p.sulcosRaiz?.length ? cava(0.05, macicas, ...p.sulcosRaiz.map((s) => cone(...s))) : macicas);

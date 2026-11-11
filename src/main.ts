@@ -33,6 +33,7 @@ const uniformes = {
   uOlho: { value: new THREE.Vector3() },
   uBase: { value: new THREE.Matrix3() },
   uFoco: { value: 3 },
+  uZero: { value: 0 },
   uDesloc: { value: 0 },
   uPlano: { value: new THREE.Vector3(0, 0, 1) },
   uCorte: { value: 0.62 },
@@ -90,6 +91,9 @@ let estreito = false;
 let selecionada: string | null = null;
 const ocultos = new Set<Grupo>();
 
+/* de onde vem a luz, em relação à tela (x: esquerda − / direita +, y: de cima +). Ela é
+   presa à câmera: em qualquer vista, inclusive a oclusal, a luz chega de lado e marca o relevo. */
+const luzTela = { x: -0.5, y: 0.8 };
 const direita = new THREE.Vector3();
 const cima = new THREE.Vector3();
 const frente = new THREE.Vector3();
@@ -121,6 +125,7 @@ function atualizaCamera() {
   frente.copy(ALVO).sub(uniformes.uOlho.value).normalize();
   direita.crossVectors(frente, THREE.Object3D.DEFAULT_UP).normalize();
   cima.crossVectors(direita, frente);
+  uniformes.uLuz.value.set(0, 0, 0).addScaledVector(direita, luzTela.x).addScaledVector(cima, luzTela.y * uniformes.uInverte.value).addScaledVector(frente, -0.7);
   uniformes.uBase.value.set(direita.x, cima.x, frente.x, direita.y, cima.y, frente.y, direita.z, cima.z, frente.z);
 }
 
@@ -160,7 +165,7 @@ function resolucao(alta: boolean) {
 /* Aproxima ou afasta mantendo fixo o ponto do dente que está sob (x, y) na tela. */
 function aplicaZoom(novo: number, x: number, y: number) {
   novo = THREE.MathUtils.clamp(novo, 1, 4);
-  if (novo === zoom) return;
+  if (novo === zoom || !def) return;
   const ux = (2 * x - largura) / altura - uniformes.uDesloc.value;
   const uy = ((altura - 2 * y) / altura) * uniformes.uInverte.value;
   const k = distancia * (1 / (FOCO * zoom) - 1 / (FOCO * novo));
@@ -435,6 +440,7 @@ function chip(caixa: HTMLElement, nome: string, aoClicar: (b: HTMLButtonElement)
 
 /* cortes: trocam o plano, levam-no à posição clássica e viram a face cortada para a câmera */
 function abreCorte(p: Plano) {
+  aplicaZoom(1, 0, 0); // vistas e cortes mostram o dente inteiro
   defineGiro(false);
   if (p !== plano) {
     plano = p;
@@ -460,6 +466,7 @@ function montaControles() {
   $('#vistas').replaceChildren();
   botoesVista = vistas.map(([nome, guinada, inclinacao]) =>
     chip($('#vistas'), nome, (b) => {
+      aplicaZoom(1, 0, 0);
       defineGiro(false);
       defineCorte(0, false);
       destino = { guinada, inclinacao };
@@ -483,19 +490,37 @@ const noPainel = criaOdontograma($('#arcada-painel'), (fdi) => { location.hash =
 $('#abrir-arcada').addEventListener('click', () => dialogo.showModal());
 $('#fechar-arcada').addEventListener('click', () => dialogo.close());
 
-function abreDente(fdi: number) {
+/* O shader de cada dente leva de um a alguns segundos para compilar na primeira vez. A
+   compilação é pedida fora do fio principal: a página continua respondendo, o dente anterior
+   fica na tela e a legenda avisa. Se outro dente for pedido no meio, vale o último. */
+const compilados = new Set<number>();
+let pedido = 0;
+async function abreDente(fdi: number) {
   if (!temFicha(fdi)) fdi = 36;
-  if (def?.fdi === fdi) return;
-  ({ def, modelo } = carrega(fdi));
+  const meu = ++pedido;
+  if (def?.fdi === fdi) { document.body.classList.remove('preparando'); defineCorte(corteAlvo, true); return; }
+  const novo = carrega(fdi);
+  const material = materialDo(novo.def);
+  if (!compilados.has(fdi)) {
+    document.body.classList.add('preparando');
+    legenda.textContent = `preparando o dente ${fdi}`;
+    const provisoria = new THREE.Scene();
+    provisoria.add(new THREE.Mesh(quadro3d.geometry, material));
+    try { await renderer.compileAsync(provisoria, camera); } catch { /* sem compilação paralela: compila no primeiro quadro */ }
+    compilados.add(fdi);
+    if (meu !== pedido) return;
+  }
+  document.body.classList.remove('preparando');
+  ({ def, modelo } = novo);
   const reg = registro(fdi)!;
 
-  quadro3d.material = materialDo(def);
+  quadro3d.material = material;
   uniformes.uCentro.value.set(def.centro[0], def.centro[1], def.centro[2]);
   uniformes.uRaio.value = def.raio;
   uniformes.uChao.value = def.chao;
   /* dentes superiores aparecem de coroa para baixo: a imagem é espelhada na vertical */
   uniformes.uInverte.value = def.arco === 'superior' ? -1 : 1;
-  uniformes.uLuz.value.set(-0.5, 0.8 * uniformes.uInverte.value, 0.7);
+  luzTela.x = -0.5; luzTela.y = 0.8;
 
   plano = def.planos[0];
   uniformes.uPlano.value.set(plano.normal[0], plano.normal[1], plano.normal[2]);
@@ -552,7 +577,8 @@ tela.addEventListener('pointerdown', (e) => {
 });
 tela.addEventListener('pointermove', (e) => {
   /* a luz acompanha o ponteiro de leve, mesmo sem arrastar */
-  uniformes.uLuz.value.set(-0.5 + (e.clientX / largura - 0.5) * 0.9, (0.8 - (e.clientY / altura - 0.5) * 0.5) * uniformes.uInverte.value, 0.7);
+  luzTela.x = -0.5 + (e.clientX / largura - 0.5) * 0.9;
+  luzTela.y = 0.8 - (e.clientY / altura - 0.5) * 0.5;
   sujo = true;
   if (dedos.has(e.pointerId)) dedos.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (dedos.size === 2) {
@@ -619,6 +645,7 @@ const voltaCurta = (de: number, para: number) => Math.atan2(Math.sin(para - de),
 
 function quadro(agora: number) {
   requestAnimationFrame(quadro);
+  if (!def) return; // o primeiro dente ainda está sendo preparado
   const dt = Math.min(0.05, (agora - antes) / 1000);
   antes = agora;
   if (!visivel) return;
@@ -685,6 +712,9 @@ function quadro(agora: number) {
     mede();
   }
 }
+
+/* para conferir a forma por medida, e não só no olho: ?sonda expõe a função de distância do dente aberto */
+if (location.search.includes('sonda')) (window as unknown as { sonda: (p: V) => number }).sonda = (p) => modelo.dente(p);
 
 /* ---------- partida ---------- */
 addEventListener('resize', mede);

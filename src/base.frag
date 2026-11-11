@@ -15,6 +15,8 @@ uniform vec3 uFundo, uEsmalte, uDentina, uPolpa, uCemento, uTinta;
 uniform vec3 uCentro;    // centro e raio da esfera que envolve o dente
 uniform float uRaio;
 uniform float uChao;     // altura do chão, onde cai a sombra
+uniform int uZero;        // sempre 0. Começar os laços nele impede o compilador de desenrolá-los e de copiar a
+                          // função do dente em cada chamada; sem isso a compilação leva dezenas de segundos
 uniform float uInverte;  // -1 nos dentes superiores: a imagem é espelhada na vertical, com a coroa para baixo
 
 out vec4 saida;
@@ -62,18 +64,24 @@ float graos(vec3 q) { return ruido(q) + 0.5 * ruido(q.zxy * 2.3 + 7.0); }
 vec3 normalDoDente(vec3 p) {
   // o passo da normal acompanha o tamanho do pixel: de perto, mais fino e mais nítido
   vec2 e = vec2(clamp(3.0 * distance(p, uOlho) / (uRes.y * uFoco), 0.0004, 0.0015), 0.0);
-  return normalize(vec3(dente(p + e.xyy) - dente(p - e.xyy), dente(p + e.yxy) - dente(p - e.yxy), dente(p + e.yyx) - dente(p - e.yyx)));
+  // quatro amostras em tetraedro, num laço: a função do dente entra no código uma vez só
+  vec3 n = vec3(0.0);
+  for (int i = uZero; i < 4; i++) {
+    vec3 d = 0.5773 * (2.0 * vec3(float(((i + 3) >> 1) & 1), float((i >> 1) & 1), float(i & 1)) - 1.0);
+    n += d * dente(p + e.x * d);
+  }
+  return normalize(n);
 }
 
 float oclusao(vec3 p, vec3 n) {
   float o = 0.0, peso = 1.0;
-  for (int i = 1; i <= 4; i++) { float h = 0.045 * float(i); o += (h - cena(p + n * h)) * peso; peso *= 0.6; }
+  for (int i = uZero + 1; i <= 4; i++) { float h = 0.045 * float(i); o += (h - cena(p + n * h)) * peso; peso *= 0.6; }
   return clamp(1.0 - 2.2 * o, 0.0, 1.0);
 }
 
 float sombra(vec3 p, vec3 l) {
   float res = 1.0, t = 0.03;
-  for (int i = 0; i < 22; i++) { float h = cena(p + l * t); res = min(res, 9.0 * h / t); t += clamp(h, 0.02, 0.16); if (res < 0.01 || t > 1.8) break; }
+  for (int i = uZero; i < 22; i++) { float h = cena(p + l * t); res = min(res, 9.0 * h / t); t += clamp(h, 0.02, 0.16); if (res < 0.01 || t > 1.8) break; }
   return clamp(res, 0.0, 1.0);
 }
 
@@ -185,7 +193,7 @@ void main() {
     float menor = 1e3, tMenor = t;
     bool bateu = false;
 
-    for (int i = 0; i < 110; i++) {
+    for (int i = uZero; i < 110; i++) {
       float d = cena(ro + rd * t);
       if (d / t < menor) { menor = d / t; tMenor = t; }
       if (d < min(0.0006, pixel * 0.4) * t) { bateu = true; break; }
@@ -193,11 +201,13 @@ void main() {
       if (t > fim) break;
     }
 
-    if (bateu) {
-      cor = tinge(ro + rd * t, rd, pixel * t);
-    } else if (menor < pixel) {
+    // uma única chamada de tinge para os dois casos, pelo mesmo motivo do uZero
+    bool raspao = !bateu && menor < pixel;
+    if (bateu || raspao) {
+      float tt = bateu ? t : tMenor;
+      vec3 c = tinge(ro + rd * tt, rd, pixel * tt);
       // raio que passou de raspão: mistura a borda com o fundo, em vez de serrilhar
-      cor = mix(tinge(ro + rd * tMenor, rd, pixel * tMenor), fundo, smoothstep(0.0, pixel, menor));
+      cor = raspao ? mix(c, fundo, smoothstep(0.0, pixel, menor)) : c;
     }
   }
 

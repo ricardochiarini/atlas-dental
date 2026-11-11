@@ -131,6 +131,11 @@ h1 em { display: block; margin-top: .06em; color: var(--ac); text-transform: non
 /* legenda da figura, sob o dente: diz o que se está vendo */
 .fig { position: fixed; left: var(--cx, 60%); bottom: 58px; margin: 0; translate: -50% 0; white-space: nowrap; font: italic 400 18px/1 var(--f-s); color: var(--mut); pointer-events: none; }
 
+/* enquanto o shader do próximo dente compila, o atual esmaece e a legenda avisa */
+#tela { transition: opacity .25s var(--ease); }
+.preparando #tela { opacity: .35; }
+.preparando .fig { color: var(--fg); }
+
 /* nota da estrutura escolhida, como numa margem de página */
 #ficha { position: fixed; right: var(--margem); bottom: 58px; width: min(300px, 27vw); pointer-events: none; }
 #ficha h2 { margin: 0; font: 400 30px/1.02 var(--f-s); text-wrap: balance; }
