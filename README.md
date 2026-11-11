@@ -4,7 +4,7 @@ Atlas de anatomia dental que roda no navegador: cada dente pode ser girado, aber
 
 **Não há modelo 3D.** Nenhuma malha, textura ou arquivo importado: cada dente é uma função matemática, avaliada em cada pixel por um shader.
 
-Dentes prontos: **36** e **46** (primeiro molar inferior). Os demais aparecem no odontograma como "em preparação".
+Dentes prontos: os molares inferiores, **36, 37, 38** e os espelhos **46, 47, 48**. Os demais aparecem no odontograma como "em preparação".
 
 ## Como funciona
 
@@ -27,7 +27,8 @@ Com isso, desenho e rótulos nunca saem de sincronia.
 | Arquivo | Papel |
 |---|---|
 | [`src/no.ts`](src/no.ts) | As peças (esfera, caixa, cone...), as operações (unir, escavar, curvar, espelhar) e os dois geradores. |
-| [`src/dentes/molar-inferior-1.ts`](src/dentes/molar-inferior-1.ts) | A ficha do primeiro molar inferior: forma, cavidade pulpar, planos de corte e as 52 estruturas nomeadas. |
+| [`src/dentes/molar-inferior.ts`](src/dentes/molar-inferior.ts) | O molde dos molares inferiores: monta forma, cavidade pulpar, cortes e estruturas a partir das medidas de cada dente. |
+| [`src/dentes/molares-inferiores.ts`](src/dentes/molares-inferiores.ts) | As fichas do 36, do 37 e do 38: cúspides, sulcos, raízes, canais e textos. |
 | [`src/dentes/catalogo.ts`](src/dentes/catalogo.ts) | Os 32 dentes na notação FDI. O lado direito é o espelho do esquerdo, com rótulos e cortes espelhados juntos. |
 | [`src/modelo.ts`](src/modelo.ts) | As funções de um dente em TypeScript: tecido, normal, assentar um ponto na superfície, teste de oclusão. |
 | [`src/base.frag`](src/base.frag) | O shader comum: marcha de raios, luz, sombra e a pintura dos tecidos no corte. |
