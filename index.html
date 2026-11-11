@@ -23,7 +23,7 @@
       </p>
 
       <div class="controles">
-        <label class="hud" for="corte">Corte <output id="corte-valor">0%</output></label>
+        <label class="hud" for="corte">Posição do corte <output id="corte-valor">sem corte</output></label>
         <input id="corte" type="range" min="0" max="100" step="1" value="0" />
         <button id="giro" type="button" class="hud chave" aria-pressed="true">Girar sozinho</button>
       </div>
@@ -31,6 +31,11 @@
       <div class="vistas" role="group" aria-label="Vistas">
         <span class="hud">Vista</span>
         <div id="vistas"></div>
+      </div>
+
+      <div class="vistas cortes" role="group" aria-label="Planos de corte">
+        <span class="hud">Corte</span>
+        <div id="planos"></div>
       </div>
 
       <details id="indice">
@@ -42,7 +47,7 @@
     <aside id="ficha" aria-live="polite">
       <p class="hud" id="ficha-grupo">Como usar</p>
       <h2 id="ficha-nome">Gire, corte e toque nos nomes</h2>
-      <p id="ficha-texto">Arraste o dente para girar. Abra o corte para ver o interior. Cada nome leva à descrição da estrutura.</p>
+      <p id="ficha-texto">Arraste o dente para girar. Escolha um plano de corte para ver o interior. Cada nome leva à descrição da estrutura.</p>
     </aside>
 
     <footer class="base hud">

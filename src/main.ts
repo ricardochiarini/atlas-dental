@@ -1,17 +1,18 @@
-/* Página do molar. O Three.js cuida do contexto WebGL e desenha um único retângulo que
+/* Página do atlas. O Three.js cuida do contexto WebGL e desenha um único retângulo que
    cobre a tela; todo o dente é calculado no shader de fragmento (molar.frag). Aqui ficam
-   a câmera em órbita, o corte, o atlas (nomes presos ao dente) e o controle de desempenho. */
+   a câmera em órbita, os planos de corte, os nomes presos ao dente e o controle de desempenho. */
 import * as THREE from 'three';
-import { ESTRUTURAS, VISTAS, type Estrutura } from './atlas';
+import { ESTRUTURAS, GRUPOS, PLANOS, VISTAS, type Estrutura, type Grupo, type Plano } from './atlas';
 import fragmento from './molar.frag?raw';
-import { assenta, escondido, type V } from './sdf';
+import { assenta, dente, escondido, tecido, type V } from './sdf';
 import './estilo.css';
 
 const VERTICE = /* glsl */ `in vec3 position; void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }`;
 const $ = <T extends Element>(s: string) => document.querySelector<T>(s)!;
 
 const tela = $<HTMLCanvasElement>('#tela');
-const reduz = matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* sem animação: preferência do sistema, ou ?semanim no endereço (útil para conferir e capturar telas) */
+const reduz = matchMedia('(prefers-reduced-motion: reduce)').matches || location.search.includes('semanim');
 
 /* ---------- WebGL ---------- */
 let renderer: THREE.WebGLRenderer;
@@ -29,6 +30,7 @@ const uniformes = {
   uBase: { value: new THREE.Matrix3() },
   uFoco: { value: 3 },
   uDesloc: { value: 0 },
+  uPlano: { value: new THREE.Vector3(0, 0, 1) },
   uCorte: { value: 0.62 },
   uLuz: { value: new THREE.Vector3(-0.5, 0.8, 0.7) },
   uFundo: { value: new THREE.Color() },
@@ -50,11 +52,11 @@ cena.add(
 
 /* ---------- estado ---------- */
 const ALVO = new THREE.Vector3(0, -0.26, 0);
-const Z_FORA = 0.62; // plano de corte fora do dente (corte = 0)
 const olhar = { guinada: 0.45, inclinacao: 0.12, velG: 0, velI: 0 };
 let destino: { guinada: number; inclinacao: number } | null = null; // para onde a câmera está indo sozinha
 let distancia = 6.4;
-let corte = 0; // 0 = dente inteiro, 1 = cortado ao meio
+let plano: Plano = PLANOS[0];
+let corte = 0; // 0 = plano fora do dente; 1 = plano no fim do percurso
 let corteAlvo = 0;
 let girando = !reduz;
 let arrastando = false;
@@ -64,10 +66,16 @@ let largura = 1;
 let altura = 1;
 let estreito = false;
 let selecionada: string | null = null;
+const ocultos = new Set<Grupo>();
 
 const direita = new THREE.Vector3();
 const cima = new THREE.Vector3();
 const frente = new THREE.Vector3();
+
+/** posição do plano (o valor de uCorte) para uma fração do percurso */
+const posicao = (p: Plano, s: number) => p.fora + (p.fim - p.fora) * s;
+/** fração do percurso que deixa o plano na posição clássica daquele corte */
+const fracaoPadrao = (p: Plano) => (p.padrao - p.fora) / (p.fim - p.fora);
 
 /* ---------- cores: as mesmas variáveis CSS da página ---------- */
 function leCores() {
@@ -123,7 +131,7 @@ function mede() {
 /* ---------- atlas ---------- */
 interface Rotulo {
   e: Estrutura;
-  ancoras: { p: V; n: V }[]; // já assentadas na superfície
+  ancoras: { p: V; n: V }[]; // âncoras externas, já assentadas na superfície
   botao: HTMLButtonElement;
   linha: SVGLineElement;
   bola: SVGCircleElement;
@@ -140,7 +148,6 @@ const rotulos: Rotulo[] = ESTRUTURAS.map((e) => {
   botao.type = 'button';
   botao.className = 'rot';
   botao.textContent = e.nome;
-  botao.setAttribute('aria-label', e.nome);
   botao.addEventListener('click', () => seleciona(e.id, false));
   camadaRotulos.appendChild(botao);
 
@@ -150,20 +157,48 @@ const rotulos: Rotulo[] = ESTRUTURAS.map((e) => {
 
   const item = document.createElement('button');
   item.type = 'button';
+  item.className = 'item';
   item.textContent = e.nome;
   item.addEventListener('click', () => seleciona(e.id, true));
 
   return { e, ancoras: (e.externas ?? []).map(([p, n]) => assenta(p, n)), botao, linha, bola, item };
 });
 
-/* índice agrupado: Coroa, Raiz, Interior */
-for (const grupo of ['Coroa', 'Raiz', 'Interior'] as const) {
-  const h = document.createElement('h3');
-  h.textContent = grupo;
-  lista.appendChild(h);
-  for (const r of rotulos) if (r.e.grupo === grupo) lista.appendChild(r.item);
+/* Índice: um bloco por grupo. O cabeçalho liga e desliga os nomes daquele grupo no dente. */
+for (const grupo of GRUPOS) {
+  const doGrupo = rotulos.filter((r) => r.e.grupo === grupo);
+  const cab = document.createElement('button');
+  cab.type = 'button';
+  cab.className = 'grupo hud';
+  cab.setAttribute('aria-pressed', 'true');
+  cab.title = 'Mostrar ou esconder os nomes deste grupo no dente';
+  cab.innerHTML = `<span>${grupo}</span><i>${doGrupo.length}</i>`;
+  cab.addEventListener('click', () => {
+    const mostrar = ocultos.has(grupo);
+    if (mostrar) ocultos.delete(grupo);
+    else ocultos.add(grupo);
+    cab.setAttribute('aria-pressed', String(mostrar));
+    sujo = true;
+  });
+  lista.appendChild(cab);
+  for (const r of doGrupo) lista.appendChild(r.item);
 }
 $('#total').textContent = String(ESTRUTURAS.length);
+
+/* Em qual plano e em que ponto uma estrutura interna aparece. Devolve o ponto já sobre o plano. */
+function pontoNoCorte(e: Estrutura, n: V, h: number): V | null {
+  let melhor: V | null = null;
+  let menor = e.folga ?? 0.05;
+  for (const a of e.internas ?? []) {
+    const d = a[0] * n[0] + a[1] * n[1] + a[2] * n[2] - h;
+    if (Math.abs(d) >= menor) continue;
+    const p: V = [a[0] - n[0] * d, a[1] - n[1] * d, a[2] - n[2] * d];
+    if (e.tecido ? tecido(p) !== e.tecido : dente(p) > -0.001) continue;
+    menor = Math.abs(d);
+    melhor = p;
+  }
+  return melhor;
+}
 
 function seleciona(id: string, moverCamera: boolean) {
   const r = rotulos.find((x) => x.e.id === id);
@@ -173,31 +208,39 @@ function seleciona(id: string, moverCamera: boolean) {
   $('#ficha-grupo').textContent = r.e.grupo;
   $('#ficha-nome').textContent = r.e.nome;
   $('#ficha-texto').textContent = r.e.texto;
-  marcaVista(null);
 
   if (moverCamera) {
     defineGiro(false);
-    if (r.e.interna) {
-      defineCorte(1, false);
-      destino = { guinada: 0.28, inclinacao: 0.12 };
+    if (r.e.internas) {
+      /* escolhe o primeiro corte clássico em que a estrutura aparece */
+      const p = PLANOS.find((pl) => pontoNoCorte(r.e, pl.normal, pl.padrao)) ?? PLANOS[0];
+      abreCorte(p);
     } else {
       /* gira até a normal da primeira âncora apontar para a câmera */
       const n = r.ancoras[0].n;
       defineCorte(0, false);
-      destino = { guinada: Math.atan2(n[0], n[2]), inclinacao: THREE.MathUtils.clamp(Math.asin(n[1]) * 0.85, -0.5, 1.1) };
+      marca(botoesVista, null);
+      marca(botoesPlano, null);
+      destino = { guinada: Math.atan2(n[0], n[2]), inclinacao: THREE.MathUtils.clamp(Math.asin(n[1]) * 0.85, -0.5, 1.15) };
     }
+    /* se o grupo estava escondido, volta a mostrar: a pessoa pediu para ver esta estrutura */
+    if (ocultos.delete(r.e.grupo)) lista.querySelectorAll<HTMLElement>('.grupo').forEach((c) => c.textContent?.startsWith(r.e.grupo) && c.setAttribute('aria-pressed', 'true'));
   }
   sujo = true;
 }
 
-/* Escolhe, para cada estrutura, a âncora que a câmera enxerga; depois distribui os nomes
+/* Escolhe, para cada estrutura, o ponto que a câmera enxerga; depois distribui os nomes
    em duas colunas, uma de cada lado do dente, sem deixar um nome sobre o outro. */
 interface Visivel { r: Rotulo; x: number; y: number; alvoY: number }
 
 function posicionaRotulos() {
   const olho = uniformes.uOlho.value;
   const o: V = [olho.x, olho.y, olho.z];
-  const z = uniformes.uCorte.value;
+  const n = plano.normal;
+  const h = uniformes.uCorte.value;
+  const cortando = corte > 0.02;
+  /* a face cortada só é legível se estiver virada para a câmera */
+  const faceVisivel = cortando && -(frente.x * n[0] + frente.y * n[1] + frente.z * n[2]) > 0.3;
   const esq: Visivel[] = [];
   const dir: Visivel[] = [];
   const centro = projeta([ALVO.x, ALVO.y, ALVO.z]);
@@ -205,26 +248,27 @@ function posicionaRotulos() {
   for (const r of rotulos) {
     let ponto: V | null = null;
 
-    if (r.e.interna) {
-      /* na face do corte: só com o corte no meio e a face virada para a câmera */
-      if (corte > 0.97 && -frente.z > 0.45 && olho.z > z) ponto = [r.e.interna[0], r.e.interna[1], z];
+    if (ocultos.has(r.e.grupo) && r.e.id !== selecionada) {
+      ponto = null;
+    } else if (r.e.internas) {
+      if (faceVisivel) ponto = pontoNoCorte(r.e, n, h);
     } else {
       let melhor = 0.16; // o ponto precisa estar razoavelmente de frente
       for (const a of r.ancoras) {
-        if (a.p[2] > z + 0.004) continue; // essa parte foi removida pelo corte
+        if (a.p[0] * n[0] + a.p[1] * n[1] + a.p[2] * n[2] > h + 0.004) continue; // removido pelo corte
         aux.set(o[0] - a.p[0], o[1] - a.p[1], o[2] - a.p[2]).normalize();
         const deFrente = aux.x * a.n[0] + aux.y * a.n[1] + aux.z * a.n[2];
-        if (deFrente <= melhor || escondido(a.p, a.n, o, z)) continue;
+        if (deFrente <= melhor || escondido(a.p, a.n, o, n, h)) continue;
         melhor = deFrente;
         ponto = a.p;
       }
     }
 
     const on = ponto !== null;
+    const sel = r.e.id === selecionada;
     r.botao.classList.toggle('on', on);
     r.linha.classList.toggle('on', on);
     r.bola.classList.toggle('on', on);
-    const sel = r.e.id === selecionada;
     r.botao.classList.toggle('sel', sel);
     r.linha.classList.toggle('sel', sel && on);
     r.bola.classList.toggle('sel', sel && on);
@@ -237,13 +281,13 @@ function posicionaRotulos() {
   /* raio do dente na tela, para afastar as colunas dele */
   const pxPorUnidade = (uniformes.uFoco.value / distancia) * (altura / 2);
   const coluna = 0.66 * pxPorUnidade + 46;
-  const topo = 86;
-  const baseEsq = altura - 70;
-  const baseDir = altura - (estreito ? 70 : 230); // deixa lugar para a ficha
+  const topo = 70;
+  const baseEsq = altura - 60;
+  const baseDir = altura - (estreito ? 60 : 215); // deixa lugar para a ficha
 
   const distribui = (lado: Visivel[], base: number) => {
     lado.sort((a, b) => a.y - b.y);
-    const vao = 27;
+    const vao = Math.min(27, (base - topo) / Math.max(1, lado.length - 1));
     for (let i = 0; i < lado.length; i++) lado[i].alvoY = Math.max(i ? lado[i - 1].alvoY + vao : topo, lado[i].y);
     /* se passou do limite de baixo, empurra a pilha para cima */
     for (let i = lado.length - 1; i >= 0; i--) {
@@ -277,18 +321,17 @@ function posicionaRotulos() {
 const campoCorte = $<HTMLInputElement>('#corte');
 const valorCorte = $<HTMLOutputElement>('#corte-valor');
 const botaoGiro = $<HTMLButtonElement>('#giro');
-const caixaVistas = $<HTMLElement>('#vistas');
 
 function defineCorte(v: number, imediato: boolean) {
   corteAlvo = THREE.MathUtils.clamp(v, 0, 1);
   if (imediato || reduz) corte = corteAlvo;
   campoCorte.value = String(Math.round(corteAlvo * 100));
-  valorCorte.textContent = `${Math.round(corteAlvo * 100)}%`;
+  valorCorte.textContent = corteAlvo < 0.005 ? 'sem corte' : plano.nome.toLowerCase();
   sujo = true;
 }
 campoCorte.addEventListener('input', () => {
   defineCorte(Number(campoCorte.value) / 100, true);
-  marcaVista(null);
+  marca(botoesVista, null);
 });
 
 function defineGiro(ligado: boolean) {
@@ -299,27 +342,48 @@ function defineGiro(ligado: boolean) {
 }
 botaoGiro.addEventListener('click', () => {
   defineGiro(!girando);
-  marcaVista(null);
+  marca(botoesVista, null);
 });
 botaoGiro.setAttribute('aria-pressed', String(girando));
 
-const botoesVista: HTMLButtonElement[] = Object.entries(VISTAS).map(([nome, [guinada, inclinacao, c]]) => {
+function marca(botoes: HTMLButtonElement[], ativo: HTMLButtonElement | null) {
+  for (const b of botoes) b.setAttribute('aria-pressed', String(b === ativo));
+}
+function chip(caixa: HTMLElement, nome: string, aoClicar: (b: HTMLButtonElement) => void) {
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'hud';
   b.textContent = nome;
   b.setAttribute('aria-pressed', 'false');
-  b.addEventListener('click', () => {
-    defineGiro(false);
-    defineCorte(c, false);
-    destino = { guinada, inclinacao };
-    marcaVista(b);
-  });
-  return caixaVistas.appendChild(b);
-});
-function marcaVista(ativa: HTMLButtonElement | null) {
-  for (const b of botoesVista) b.setAttribute('aria-pressed', String(b === ativa));
+  b.addEventListener('click', () => aoClicar(b));
+  return caixa.appendChild(b);
 }
+
+/* vistas externas: fecham o corte e giram a câmera */
+const botoesVista = Object.entries(VISTAS).map(([nome, [guinada, inclinacao]]) =>
+  chip($('#vistas'), nome, (b) => {
+    defineGiro(false);
+    defineCorte(0, false);
+    destino = { guinada, inclinacao };
+    marca(botoesVista, b);
+    marca(botoesPlano, null);
+  }),
+);
+
+/* cortes: trocam o plano, levam-no à posição clássica e viram a face cortada para a câmera */
+function abreCorte(p: Plano) {
+  defineGiro(false);
+  if (p !== plano) {
+    plano = p;
+    corte = 0; // o plano novo entra de fora para dentro
+    uniformes.uPlano.value.set(p.normal[0], p.normal[1], p.normal[2]);
+  }
+  defineCorte(fracaoPadrao(p), false);
+  destino = { guinada: p.vista[0], inclinacao: p.vista[1] };
+  marca(botoesVista, null);
+  marca(botoesPlano, botoesPlano[PLANOS.indexOf(p)]);
+}
+const botoesPlano = PLANOS.map((p) => chip($('#planos'), p.nome, () => abreCorte(p)));
 
 /* ---------- ponteiro e teclado ---------- */
 let ultimoX = 0;
@@ -331,7 +395,7 @@ tela.addEventListener('pointerdown', (e) => {
   ultimoY = e.clientY;
   tela.setPointerCapture(e.pointerId);
   defineGiro(false);
-  marcaVista(null);
+  marca(botoesVista, null);
 });
 tela.addEventListener('pointermove', (e) => {
   /* a luz acompanha o ponteiro de leve, mesmo sem arrastar */
@@ -357,7 +421,7 @@ tela.addEventListener('keydown', (e) => {
   e.preventDefault();
   destino = null;
   defineGiro(false);
-  marcaVista(null);
+  marca(botoesVista, null);
 });
 
 /* ---------- laço ---------- */
@@ -375,7 +439,7 @@ function quadro(agora: number) {
   if (!visivel) return;
 
   if (girando) {
-    /* vai e volta em torno da vista vestibular, para o corte nunca ficar de costas por muito tempo */
+    /* vai e volta em torno da vista vestibular */
     olhar.guinada += voltaCurta(olhar.guinada, Math.sin(agora * 0.00035) * 0.75) * Math.min(1, dt * 1.6);
     olhar.inclinacao += (0.14 + Math.sin(agora * 0.00027) * 0.1 - olhar.inclinacao) * Math.min(1, dt * 1.6);
     sujo = true;
@@ -402,7 +466,7 @@ function quadro(agora: number) {
     olhar.velI *= atrito;
     sujo = true;
   }
-  olhar.inclinacao = THREE.MathUtils.clamp(olhar.inclinacao, -0.9, 1.25);
+  olhar.inclinacao = THREE.MathUtils.clamp(olhar.inclinacao, -0.9, 1.3);
 
   if (Math.abs(corteAlvo - corte) > 0.0005) {
     corte += (corteAlvo - corte) * Math.min(1, dt * 3.2);
@@ -413,7 +477,7 @@ function quadro(agora: number) {
   if (!sujo) return;
   sujo = false;
 
-  uniformes.uCorte.value = Z_FORA * (1 - corte);
+  uniformes.uCorte.value = posicao(plano, corte);
   atualizaCamera();
   renderer.render(cena, camera);
   posicionaRotulos();
@@ -434,5 +498,6 @@ document.addEventListener('visibilitychange', () => (visivel = !document.hidden)
 
 leCores();
 mede();
+defineCorte(0, true);
 atualizaCamera();
 requestAnimationFrame(quadro);

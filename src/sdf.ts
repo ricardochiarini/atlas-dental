@@ -83,8 +83,51 @@ function raizes(p: V) {
 
 export const dente = (p: V) => smin(coroa(p), raizes(p), 0.13);
 
-/** O dente com o corte aplicado: tudo com z maior que `corte` foi removido. */
-export const cena = (p: V, corte: number) => Math.max(dente(p), p[2] - corte);
+/** Cavidade pulpar: câmara, cinco cornos e três canais (mésio-vestibular, mésio-lingual e distal). */
+export function polpa(p: V) {
+  let d = sdElipse([p[0], p[1] - 0.17, p[2]], [0.22, 0.1, 0.14]);
+  d = smin(d, sdCone(p, [-0.16, 0.2, 0.1], [-0.26, 0.4, 0.19], 0.045, 0.014), 0.05);
+  d = smin(d, sdCone(p, [0.09, 0.2, 0.1], [0.06, 0.39, 0.2], 0.042, 0.014), 0.05);
+  d = smin(d, sdCone(p, [0.17, 0.19, 0.07], [0.3, 0.34, 0.13], 0.035, 0.012), 0.05);
+  d = smin(d, sdCone(p, [-0.15, 0.2, -0.1], [-0.25, 0.42, -0.19], 0.045, 0.014), 0.05);
+  d = smin(d, sdCone(p, [0.12, 0.2, -0.1], [0.19, 0.4, -0.19], 0.042, 0.014), 0.05);
+  const q = dobra(p);
+  d = smin(d, sdCone(q, [-0.19, 0.11, 0.085], [-0.335, -1.21, 0.04], 0.036, 0.011), 0.05);
+  d = smin(d, sdCone(q, [-0.19, 0.11, -0.085], [-0.335, -1.21, -0.04], 0.036, 0.011), 0.05);
+  d = smin(d, sdCone([q[0], q[1], q[2] * 0.62], [0.2, 0.11, 0], [0.295, -1.12, 0], 0.048, 0.012), 0.05);
+  return d;
+}
+
+/** Altura da junção amelocementária em volta do dente. */
+export const jac = (p: V) => 0.05 + 0.035 * Math.cos(2 * Math.atan2(p[2], p[0]));
+
+/** Espessura do esmalte naquele ponto. */
+export function espessura(p: V) {
+  const c = jac(p);
+  return (0.085 + 0.05 * smoothstep(0.35, 0.7, p[1])) * smoothstep(c, c + 0.22, p[1]);
+}
+
+export type Tecido = 'fora' | 'esmalte' | 'dentina' | 'polpa' | 'cemento';
+
+/** Que tecido existe no ponto p. É a mesma regra que o shader usa para pintar o corte. */
+export function tecido(p: V): Tecido {
+  const dt = dente(p);
+  if (dt > 0) return 'fora';
+  if (polpa(p) < 0) return 'polpa';
+  const esp = espessura(p);
+  if (esp > 0.004 && dt > -esp) return 'esmalte';
+  if (p[1] < jac(p) + 0.03 && dt > -0.022) return 'cemento';
+  return 'dentina';
+}
+
+/** Desfaz a curvatura das raízes: leva um ponto do eixo reto para o lugar real no dente. */
+export function desdobra(q: V): V {
+  const t = clamp(-q[1] / 1.3, 0, 1);
+  return [q[0] + 0.1 * t * t, q[1], q[2]];
+}
+
+/** O dente com o corte aplicado: sai tudo em que dot(p, plano) > corte. */
+export const cena = (p: V, plano: V, corte: number) => Math.max(dente(p), dot(p, plano) - corte);
 
 export function normal(p: V): V {
   const e = 0.0015;
@@ -114,14 +157,14 @@ export function assenta(p: V, n: V): { p: V; n: V } {
 }
 
 /* Há dente entre o ponto e a câmera? Anda do ponto em direção ao olho e vê se bate em algo. */
-export function escondido(p: V, n: V, olho: V, corte: number): boolean {
+export function escondido(p: V, n: V, olho: V, plano: V, corte: number): boolean {
   const v = sub(olho, p);
   const l = len(v[0], v[1], v[2]);
   const d: V = [v[0] / l, v[1] / l, v[2] / l];
   let t = 0.035;
   const o: V = [p[0] + n[0] * 0.012, p[1] + n[1] * 0.012, p[2] + n[2] * 0.012];
   for (let i = 0; i < 26 && t < 1.7; i++) {
-    const dist = cena([o[0] + d[0] * t, o[1] + d[1] * t, o[2] + d[2] * t], corte);
+    const dist = cena([o[0] + d[0] * t, o[1] + d[1] * t, o[2] + d[2] * t], plano, corte);
     if (dist < 0.003) return true;
     t += Math.max(dist, 0.02);
   }

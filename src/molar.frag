@@ -1,6 +1,7 @@
-// Anatomia de um molar inferior, desenhada por distância (SDF) e percorrida raio a raio.
+// Anatomia de um molar inferior (dente 36), desenhada por distância (SDF) e percorrida raio a raio.
 // Não há malha nem textura: o dente é a função dente(p), que diz a que distância um ponto
 // está da superfície. As camadas (esmalte, dentina, polpa, cemento) são regiões dessa função.
+// ATENÇÃO: src/sdf.ts repete estas fórmulas para o atlas. Mudou aqui, muda lá.
 precision highp float;
 
 uniform vec2 uRes;
@@ -8,7 +9,8 @@ uniform vec3 uOlho;      // posição da câmera
 uniform mat3 uBase;      // direita, cima e frente da câmera
 uniform float uFoco;     // distância focal
 uniform float uDesloc;   // desloca o dente na horizontal, para dar lugar ao texto
-uniform float uCorte;    // tudo com z maior que isto é removido
+uniform vec3 uPlano;     // normal do plano de corte (aponta para a parte removida)
+uniform float uCorte;    // posição do plano: sai tudo em que dot(p, uPlano) > uCorte
 uniform vec3 uLuz;
 uniform vec3 uFundo, uEsmalte, uDentina, uPolpa, uCemento, uTinta;
 
@@ -47,14 +49,14 @@ float coroa(vec3 p) {
   vec3 q = p - vec3(0.0, 0.34, 0.0); q.xz /= colo;
   float d = sdCaixa(q, vec3(0.30, 0.17, 0.25), 0.21) * colo;
 
-  // cinco cúspides: mésio-vestibular, disto-vestibular, distal, mésio-lingual, disto-lingual
+  // cinco cúspides: mésio-vestibular, médio-vestibular, disto-vestibular, mésio-lingual, disto-lingual
   d = smin(d, length(p - vec3(-0.30, 0.60, 0.22)) - 0.17, 0.12);
   d = smin(d, length(p - vec3(0.04, 0.59, 0.24)) - 0.16, 0.12);
   d = smin(d, length(p - vec3(0.35, 0.54, 0.15)) - 0.14, 0.12);
   d = smin(d, length(p - vec3(-0.28, 0.63, -0.22)) - 0.17, 0.12);
   d = smin(d, length(p - vec3(0.20, 0.61, -0.22)) - 0.17, 0.12);
 
-  // fossa central e sulcos: central, dois vestibulares e o lingual
+  // fosseta central e sulcos: mésio-distal, mésio-vestibular, disto-vestibular e lingual
   d = smax(d, -sdElipse(p - vec3(0.02, 0.80, 0.0), vec3(0.34, 0.15, 0.13)), 0.10);
   d = smax(d, -sdCapsula(p, vec3(-0.36, 0.745, 0.0), vec3(0.40, 0.705, 0.0), 0.040), 0.07);
   d = smax(d, -sdCapsula(p, vec3(-0.12, 0.735, 0.0), vec3(-0.13, 0.62, 0.44), 0.034), 0.07);
@@ -72,16 +74,19 @@ float raizes(vec3 p) {
 
 float dente(vec3 p) { return smin(coroa(p), raizes(p), 0.13); }
 
-// câmara pulpar, cornos em direção às cúspides e um canal por raiz
+// Cavidade pulpar: câmara, um corno para cada cúspide e três canais.
+// A raiz mesial tem dois canais (mésio-vestibular e mésio-lingual); a distal, um só, achatado.
 float polpa(vec3 p) {
   float d = sdElipse(p - vec3(0.0, 0.17, 0.0), vec3(0.22, 0.10, 0.14));
   d = smin(d, sdCone(p, vec3(-0.16, 0.20, 0.10), vec3(-0.26, 0.40, 0.19), 0.045, 0.014), 0.05);
   d = smin(d, sdCone(p, vec3(0.09, 0.20, 0.10), vec3(0.06, 0.39, 0.20), 0.042, 0.014), 0.05);
+  d = smin(d, sdCone(p, vec3(0.17, 0.19, 0.07), vec3(0.30, 0.34, 0.13), 0.035, 0.012), 0.05);
   d = smin(d, sdCone(p, vec3(-0.15, 0.20, -0.10), vec3(-0.25, 0.42, -0.19), 0.045, 0.014), 0.05);
   d = smin(d, sdCone(p, vec3(0.12, 0.20, -0.10), vec3(0.19, 0.40, -0.19), 0.042, 0.014), 0.05);
   vec3 q = dobra(p);
-  d = smin(d, sdCone(q, vec3(-0.21, 0.12, 0.0), vec3(-0.335, -1.22, 0.0), 0.050, 0.012), 0.06);
-  d = smin(d, sdCone(q, vec3(0.21, 0.12, 0.0), vec3(0.295, -1.12, 0.0), 0.046, 0.012), 0.06);
+  d = smin(d, sdCone(q, vec3(-0.19, 0.11, 0.085), vec3(-0.335, -1.21, 0.040), 0.036, 0.011), 0.05);
+  d = smin(d, sdCone(q, vec3(-0.19, 0.11, -0.085), vec3(-0.335, -1.21, -0.040), 0.036, 0.011), 0.05);
+  d = smin(d, sdCone(vec3(q.x, q.y, q.z * 0.62), vec3(0.20, 0.11, 0.0), vec3(0.295, -1.12, 0.0), 0.048, 0.012), 0.05);
   return d;
 }
 
@@ -91,7 +96,7 @@ float jac(vec3 p) { return 0.05 + 0.035 * cos(2.0 * atan(p.z, p.x)); }
 // espessura do esmalte: maior nas cúspides, afinando até zero no colo
 float espessura(vec3 p) { float c = jac(p); return (0.085 + 0.05 * smoothstep(0.35, 0.70, p.y)) * smoothstep(c, c + 0.22, p.y); }
 
-float cena(vec3 p) { return max(dente(p), p.z - uCorte); }
+float cena(vec3 p) { return max(dente(p), dot(p, uPlano) - uCorte); }
 
 // ---------- luz ----------
 vec3 emLinear(vec3 c) { return pow(c, vec3(2.2)); }
@@ -118,8 +123,9 @@ float sombra(vec3 p, vec3 l) {
 vec3 tinge(vec3 p, vec3 rd, float px) {
   vec3 l = normalize(uLuz), v = -rd;
   float dt = dente(p);
-  bool face = p.z > uCorte - 0.004 && dt < -0.002;
-  vec3 n = face ? vec3(0.0, 0.0, 1.0) : normalDoDente(p);
+  bool face = dot(p, uPlano) - uCorte > -0.004 && dt < -0.002;
+  vec3 n = uPlano;
+  if (!face) n = normalDoDente(p);
 
   float ndl = dot(n, l);
   float ao = oclusao(p, n);
@@ -128,7 +134,7 @@ vec3 tinge(vec3 p, vec3 rd, float px) {
 
   vec3 resultado = vec3(0.0);
   if (face) {
-    // face do corte: cada camada com a sua cor, como numa prancha de anatomia
+    // face do corte: cada tecido com a sua cor, como numa prancha de anatomia
     float dp = polpa(p);
     float esp = espessura(p);
     float c = jac(p);
@@ -142,31 +148,31 @@ vec3 tinge(vec3 p, vec3 rd, float px) {
     float pol = smoothstep(w, -w, dp);
     cor = mix(cor, emLinear(uPolpa) * mix(1.0, 0.78, smoothstep(0.0, -0.07, dp)), pol);
 
-    // traço fino nas fronteiras entre camadas
+    // traço fino nas fronteiras entre tecidos
     float traco = smoothstep(w * 2.2, 0.0, abs(dp));
     if (esp > 0.004) traco = max(traco, smoothstep(w * 2.2, 0.0, abs(dt + esp)));
     cor = mix(cor, emLinear(uTinta), traco * 0.30);
 
-    float luz = 0.80 + 0.20 * max(ndl, 0.0) * sb;
-    resultado = cor * luz * mix(0.85, 1.0, ao);
+    // luz quase chapada: a face cortada precisa ser lida em qualquer orientação
+    float luz = 0.86 + 0.14 * max(ndl, 0.0) * sb;
+    resultado = cor * luz * mix(0.9, 1.0, ao);
   } else {
+    // superfície externa: esmalte brilhante na coroa, cemento fosco na raiz
+    float c = jac(p);
+    float naCoroa = smoothstep(c - 0.03, c + 0.06, p.y);
+    vec3 base = mix(emLinear(uCemento), emLinear(uEsmalte), naCoroa);
 
-  // superfície externa: esmalte brilhante na coroa, cemento fosco na raiz
-  float c = jac(p);
-  float naCoroa = smoothstep(c - 0.03, c + 0.06, p.y);
-  vec3 base = mix(emLinear(uCemento), emLinear(uEsmalte), naCoroa);
+    float difusa = pow(ndl * 0.5 + 0.5, 1.6);                       // luz envolvente, sem sombra dura
+    vec3 h = normalize(l + v);
+    float brilho = pow(max(dot(n, h), 0.0), mix(16.0, 85.0, naCoroa)) * mix(0.06, 0.55, naCoroa) * sb;
+    float borda = pow(1.0 - max(dot(n, v), 0.0), 4.0) * mix(0.06, 0.30, naCoroa);
 
-  float difusa = pow(ndl * 0.5 + 0.5, 1.6);                       // luz envolvente, sem sombra dura
-  vec3 h = normalize(l + v);
-  float brilho = pow(max(dot(n, h), 0.0), mix(16.0, 85.0, naCoroa)) * mix(0.06, 0.55, naCoroa) * sb;
-  float borda = pow(1.0 - max(dot(n, v), 0.0), 4.0) * mix(0.06, 0.30, naCoroa);
-
-  // esmalte fino deixa passar um pouco da cor da dentina
-  float fino = 1.0 - clamp(-dente(p - n * 0.12) / 0.12, 0.0, 1.0);
-  vec3 cor = base * (ceu * 0.42 * ao + difusa * mix(0.55, 1.0, sb) * 0.72);
-  cor += emLinear(uDentina) * fino * 0.10 * naCoroa;
-  cor += vec3(brilho) + ceu * borda * ao;
-  resultado = cor;
+    // esmalte fino deixa passar um pouco da cor da dentina
+    float fino = 1.0 - clamp(-dente(p - n * 0.12) / 0.12, 0.0, 1.0);
+    vec3 cor = base * (ceu * 0.42 * ao + difusa * mix(0.55, 1.0, sb) * 0.72);
+    cor += emLinear(uDentina) * fino * 0.10 * naCoroa;
+    cor += vec3(brilho) + ceu * borda * ao;
+    resultado = cor;
   }
   return resultado;
 }
