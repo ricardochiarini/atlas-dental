@@ -142,6 +142,7 @@ const NS = 'http://www.w3.org/2000/svg';
 const svg = $<SVGSVGElement>('#linhas');
 const camadaRotulos = $<HTMLElement>('#rotulos');
 const lista = $<HTMLElement>('#lista');
+const painel = $<HTMLElement>('.folha');
 
 const rotulos: Rotulo[] = ESTRUTURAS.map((e) => {
   const botao = document.createElement('button');
@@ -211,7 +212,7 @@ function seleciona(id: string, moverCamera: boolean) {
 
   if (moverCamera) {
     defineGiro(false);
-    if (r.e.internas) {
+    if (r.e.internas && !r.ancoras.length) {
       /* escolhe o primeiro corte clássico em que a estrutura aparece */
       const p = PLANOS.find((pl) => pontoNoCorte(r.e, pl.normal, pl.padrao)) ?? PLANOS[0];
       abreCorte(p);
@@ -245,16 +246,22 @@ function posicionaRotulos() {
   const dir: Visivel[] = [];
   const centro = projeta([ALVO.x, ALVO.y, ALVO.z]);
 
+  /* raio do dente na tela, para afastar as colunas dele */
+  const pxPorUnidade = (uniformes.uFoco.value / distancia) * (altura / 2);
+  const coluna = 0.66 * pxPorUnidade + 46;
+  /* a coluna da esquerda só existe se os nomes não invadirem o painel de texto */
+  const cabeEsquerda = estreito || centro.x - coluna - 240 > painel.getBoundingClientRect().right;
+
   for (const r of rotulos) {
     let ponto: V | null = null;
 
     if (ocultos.has(r.e.grupo) && r.e.id !== selecionada) {
       ponto = null;
-    } else if (r.e.internas) {
-      if (faceVisivel) ponto = pontoNoCorte(r.e, n, h);
     } else {
+      /* primeiro na face do corte; se não aparecer lá, na superfície (quando a estrutura tem as duas) */
+      if (r.e.internas && faceVisivel) ponto = pontoNoCorte(r.e, n, h);
       let melhor = 0.16; // o ponto precisa estar razoavelmente de frente
-      for (const a of r.ancoras) {
+      for (const a of ponto ? [] : r.ancoras) {
         if (a.p[0] * n[0] + a.p[1] * n[1] + a.p[2] * n[2] > h + 0.004) continue; // removido pelo corte
         aux.set(o[0] - a.p[0], o[1] - a.p[1], o[2] - a.p[2]).normalize();
         const deFrente = aux.x * a.n[0] + aux.y * a.n[1] + aux.z * a.n[2];
@@ -275,12 +282,8 @@ function posicionaRotulos() {
     if (!ponto) continue;
 
     const s = projeta(ponto);
-    (s.x < centro.x ? esq : dir).push({ r, x: s.x, y: s.y, alvoY: s.y });
+    (s.x < centro.x && cabeEsquerda ? esq : dir).push({ r, x: s.x, y: s.y, alvoY: s.y });
   }
-
-  /* raio do dente na tela, para afastar as colunas dele */
-  const pxPorUnidade = (uniformes.uFoco.value / distancia) * (altura / 2);
-  const coluna = 0.66 * pxPorUnidade + 46;
   const topo = 70;
   const baseEsq = altura - 60;
   const baseDir = altura - (estreito ? 60 : 215); // deixa lugar para a ficha

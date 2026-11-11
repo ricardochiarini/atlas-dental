@@ -70,9 +70,9 @@ const anelRaiz = (cx: number, funda: number) =>
 const noCemento = [...anelRaiz(-0.27, 0.011), ...anelRaiz(0.29, 0.011)];
 const naDentinaRaiz = [...anelRaiz(-0.27, 0.06), ...anelRaiz(0.29, 0.06)];
 
-const CANAL_MV: [V, V] = [[-0.19, 0.11, 0.085], [-0.335, -1.21, 0.04]];
-const CANAL_ML: [V, V] = [[-0.19, 0.11, -0.085], [-0.335, -1.21, -0.04]];
-const CANAL_D: [V, V] = [[0.2, 0.11, 0], [0.295, -1.12, 0]];
+const CANAL_MV: [V, V] = [[-0.19, 0.11, 0.085], [-0.34, -1.345, 0.025]];
+const CANAL_ML: [V, V] = [[-0.19, 0.11, -0.085], [-0.34, -1.345, -0.025]];
+const CANAL_D: [V, V] = [[0.2, 0.11, 0], [0.3, -1.245, 0]];
 
 export const ESTRUTURAS: Estrutura[] = [
   /* ---------- Faces e contornos ---------- */
@@ -143,7 +143,17 @@ export const ESTRUTURAS: Estrutura[] = [
   { id: 'canal-mv', nome: 'Canal mésio-vestibular', grupo: 'Cavidade pulpar', tecido: 'polpa', folga: 0.03, texto: 'Canal vestibular da raiz mesial. É estreito e costuma ser o mais curvo do dente.', internas: eixo([CANAL_MV[0][0], -0.02, 0.08], CANAL_MV[1], 26) },
   { id: 'canal-ml', nome: 'Canal mésio-lingual', grupo: 'Cavidade pulpar', tecido: 'polpa', folga: 0.03, texto: 'Canal lingual da raiz mesial. Pode terminar em forame próprio ou se unir ao mésio-vestibular perto do ápice.', internas: eixo([CANAL_ML[0][0], -0.02, -0.08], CANAL_ML[1], 26) },
   { id: 'canal-d', nome: 'Canal distal', grupo: 'Cavidade pulpar', tecido: 'polpa', folga: 0.035, texto: 'Canal da raiz distal: único, amplo e achatado no sentido mésio-distal. Em parte dos casos há dois canais distais.', internas: eixo([CANAL_D[0][0], -0.02, 0], CANAL_D[1], 26) },
-  { id: 'forame', nome: 'Forame apical', grupo: 'Cavidade pulpar', folga: 0.05, texto: 'Abertura no ápice por onde o feixe vásculo-nervoso entra no canal. Nem sempre coincide com o vértice anatômico da raiz.', internas: [desdobra([-0.335, -1.22, 0.04]), desdobra([-0.335, -1.22, -0.04]), desdobra([0.295, -1.13, 0])] },
+  {
+    /* O forame é a saída do canal na superfície do ápice. Por fora, o nome se prende à ponta
+       de cada raiz; no corte, ao último trecho do canal, já na saída. */
+    id: 'forame', nome: 'Forame apical', grupo: 'Cavidade pulpar', folga: 0.05,
+    texto: 'Abertura do canal radicular na superfície do ápice, por onde o feixe vásculo-nervoso entra no dente. Nem sempre coincide com o vértice anatômico da raiz.',
+    externas: [
+      [desdobra([-0.34, -1.36, 0.0]), [-0.15, -1, 0]], [desdobra([-0.34, -1.345, 0.03]), [-0.1, -0.75, 0.65]], [desdobra([-0.34, -1.345, -0.03]), [-0.1, -0.75, -0.65]],
+      [desdobra([0.3, -1.26, 0.0]), [0.15, -1, 0]], [desdobra([0.3, -1.245, 0.03]), [0.1, -0.75, 0.65]], [desdobra([0.3, -1.245, -0.03]), [0.1, -0.75, -0.65]],
+    ],
+    internas: [desdobra([-0.34, -1.338, 0.025]), desdobra([-0.34, -1.338, -0.025]), desdobra([0.3, -1.238, 0])],
+  },
 ];
 
 /** Vistas externas prontas: [guinada, inclinação]. A guinada 0 olha a face vestibular. */

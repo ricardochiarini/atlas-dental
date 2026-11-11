@@ -84,9 +84,10 @@ float polpa(vec3 p) {
   d = smin(d, sdCone(p, vec3(-0.15, 0.20, -0.10), vec3(-0.25, 0.42, -0.19), 0.045, 0.014), 0.05);
   d = smin(d, sdCone(p, vec3(0.12, 0.20, -0.10), vec3(0.19, 0.40, -0.19), 0.042, 0.014), 0.05);
   vec3 q = dobra(p);
-  d = smin(d, sdCone(q, vec3(-0.19, 0.11, 0.085), vec3(-0.335, -1.21, 0.040), 0.036, 0.011), 0.05);
-  d = smin(d, sdCone(q, vec3(-0.19, 0.11, -0.085), vec3(-0.335, -1.21, -0.040), 0.036, 0.011), 0.05);
-  d = smin(d, sdCone(vec3(q.x, q.y, q.z * 0.62), vec3(0.20, 0.11, 0.0), vec3(0.295, -1.12, 0.0), 0.048, 0.012), 0.05);
+  // os canais vão até a superfície do ápice: é ali que se abre o forame apical
+  d = smin(d, sdCone(q, vec3(-0.19, 0.11, 0.085), vec3(-0.340, -1.345, 0.025), 0.036, 0.010), 0.05);
+  d = smin(d, sdCone(q, vec3(-0.19, 0.11, -0.085), vec3(-0.340, -1.345, -0.025), 0.036, 0.010), 0.05);
+  d = smin(d, sdCone(vec3(q.x, q.y, q.z * 0.62), vec3(0.20, 0.11, 0.0), vec3(0.300, -1.245, 0.0), 0.048, 0.011), 0.05);
   return d;
 }
 
