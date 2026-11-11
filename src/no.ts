@@ -17,7 +17,7 @@ export type No =
   /** escava as peças de `nos` na `base`, com borda suave */
   | { t: 'cava'; k: number; base: No; nos: No[] }
   /** estreita a peça em direção ao colo: abaixo de y0 a largura cai para `min` */
-  | { t: 'colo'; y0: number; y1: number; min: number; no: No }
+  | { t: 'colo'; y0: number; y1: number; min: number; no: No; /** estreita só no sentido mésio-distal */ soX?: boolean }
   /** curva a peça no eixo x conforme desce (raízes) */
   | { t: 'dobra'; forca: number; altura: number; no: No }
   /** multiplica as coordenadas antes de medir: valores menores que 1 alargam a peça */
@@ -36,6 +36,8 @@ export const cone = (a: V, b: V, r1: number, r2: number): No => ({ t: 'cone', a,
 export const une = (k: number, ...nos: No[]): No => ({ t: 'une', k, nos });
 export const cava = (k: number, base: No, ...nos: No[]): No => ({ t: 'cava', k, base, nos });
 export const colo = (y0: number, y1: number, min: number, no: No): No => ({ t: 'colo', y0, y1, min, no });
+/** como o colo, mas só na largura mésio-distal: a coroa dos anteriores é mais larga na borda incisal que no colo */
+export const afila = (y0: number, y1: number, min: number, no: No): No => ({ t: 'colo', y0, y1, min, no, soX: true });
 export const dobra = (forca: number, altura: number, no: No): No => ({ t: 'dobra', forca, altura, no });
 export const escala = (s: V, no: No): No => ({ t: 'escala', s, no });
 export const cisalha = (kx: number, kz: number, y0: number, no: No): No => ({ t: 'cisalha', kx, kz, y0, no });
@@ -101,7 +103,7 @@ export function avalia(no: No, p: V): number {
     }
     case 'colo': {
       const s = no.min + (1 - no.min) * degrau(no.y0, no.y1, p[1]);
-      return avalia(no.no, [p[0] / s, p[1], p[2] / s]) * s;
+      return avalia(no.no, [p[0] / s, p[1], no.soX ? p[2] : p[2] / s]) * s;
     }
     case 'dobra': {
       const t = limita(-p[1] / no.altura, 0, 1);
@@ -156,7 +158,7 @@ export function emite(no: No, nome: string): string {
       }
       case 'colo': {
         const dentro = expr(n.no, 'q');
-        return `${nova(`  float s = mix(${f(n.min)}, 1.0, smoothstep(${f(n.y0)}, ${f(n.y1)}, p.y));\n  vec3 q = p; q.xz /= s;\n  return ${dentro} * s;`)}(${pt})`;
+        return `${nova(`  float s = mix(${f(n.min)}, 1.0, smoothstep(${f(n.y0)}, ${f(n.y1)}, p.y));\n  vec3 q = p; ${n.soX ? 'q.x' : 'q.xz'} /= s;\n  return ${dentro} * s;`)}(${pt})`;
       }
       case 'dobra': {
         const dentro = expr(n.no, 'q');

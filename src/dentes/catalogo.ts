@@ -3,6 +3,7 @@
 import type { Dente, Estrutura, V } from '../atlas';
 import { criaModelo, type Modelo } from '../modelo';
 import { espelho } from '../no';
+import { dente21, dente22, dente23, dente31, dente32, dente33 } from './anteriores';
 import { molar36, molar37, molar38 } from './molares-inferiores';
 import { molar26, molar27, molar28 } from './molares-superiores';
 import { preMolar24, preMolar25, preMolar34, preMolar35 } from './pre-molares';
@@ -57,6 +58,18 @@ function espelha(def: Dente, fdi: number): Dente {
 
 /* fichas prontas; as demais aparecem no odontograma como "em preparação" */
 const FICHAS: Record<number, () => Dente> = {
+  21: () => dente21,
+  22: () => dente22,
+  23: () => dente23,
+  31: () => dente31,
+  32: () => dente32,
+  33: () => dente33,
+  11: () => espelha(dente21, 11),
+  12: () => espelha(dente22, 12),
+  13: () => espelha(dente23, 13),
+  41: () => espelha(dente31, 41),
+  42: () => espelha(dente32, 42),
+  43: () => espelha(dente33, 43),
   24: () => preMolar24,
   25: () => preMolar25,
   34: () => preMolar34,

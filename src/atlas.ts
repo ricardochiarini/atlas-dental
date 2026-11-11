@@ -38,6 +38,8 @@ export interface Dente {
   arco: 'superior' | 'inferior';
   /** +1 quando a mesial fica em x negativo (dentes do lado esquerdo), −1 no lado direito. */
   lado: 1 | -1;
+  /** dentes anteriores: a vista de cima se chama incisal, não oclusal */
+  incisal?: boolean;
   forma: No;
   polpa: No;
   /** junção amelocementária: altura média e ondulação em volta do dente */

@@ -418,7 +418,7 @@ function montaControles() {
     [def.arco === 'superior' ? 'Palatina' : 'Lingual', Math.PI, 0.1],
     ['Mesial', (-def.lado * Math.PI) / 2, 0.1],
     ['Distal', (def.lado * Math.PI) / 2, 0.1],
-    ['Oclusal', 0, 1.2],
+    [def.incisal ? 'Incisal' : 'Oclusal', 0, 1.2],
   ];
   $('#vistas').replaceChildren();
   botoesVista = vistas.map(([nome, guinada, inclinacao]) =>
