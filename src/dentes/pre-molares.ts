@@ -38,6 +38,9 @@ const PM1S: MolarSuperior = {
   ],
   uniao: 0.15,
   curva: 0.05,
+  /* concavidade mesial: depressão no terço cervical da face mesial, que continua no tronco radicular */
+  depressoes: [{ c: [-0.385, 0.14, 0], r: [0.07, 0.2, 0.13] }],
+  sulcosRaiz: [[[-0.19, -0.05, 0], [-0.1, -0.5, 0], 0.055, 0.03]],
   furcas: [[[-0.1, -0.5, 0], [-0.8, -0.5, 0]], [[0.1, -0.5, 0], [0.8, -0.5, 0]]],
   camara: { c: [0, 0.17, 0], r: [0.1, 0.1, 0.17] },
   canais: [
@@ -80,6 +83,8 @@ const PM2S: MolarSuperior = {
   ],
   uniao: 0.16,
   curva: 0.07,
+  /* sulcos longitudinais nas faces mesial e distal da raiz */
+  sulcosRaiz: [[[-0.16, -0.25, 0], [-0.085, -1.0, 0], 0.045, 0.025], [[0.16, -0.25, 0], [0.085, -1.0, 0], 0.04, 0.022]],
   furcas: [],
   camara: { c: [0, 0.17, 0], r: [0.09, 0.1, 0.16] },
   canais: [{ id: 'canal', nome: 'Canal radicular', a: [0, 0.11, 0], b: [0, -1.345, 0], r1: 0.04, r2: 0.011, texto: 'Canal único e achatado na maior parte dos casos; pode haver dois canais que se unem ou se separam ao longo da raiz.' }],
@@ -121,6 +126,9 @@ const PM1I: MolarSuperior = {
   raizes: [{ id: 'raiz', nome: 'Raiz', a: [0, 0.1, 0.05], b: [0, -1.3, 0.02], r1: 0.17, r2: 0.045, fora: [0, 0, 1], gemea: [[0, 0.1, -0.05], [0, -1.3, -0.02]], texto: 'Raiz única, cônica, de secção ovalada e levemente inclinada para distal.' }],
   uniao: 0.16,
   curva: 0.08,
+  /* a coroa se inclina bastante para lingual: o vértice da cúspide vestibular fica sobre o eixo da raiz */
+  inclina: [0, -0.3],
+  sulcosRaiz: [[[-0.16, -0.3, 0], [-0.085, -1.0, 0], 0.04, 0.022]],
   furcas: [],
   camara: { c: [0, 0.17, 0], r: [0.085, 0.1, 0.13] },
   canais: [{ id: 'canal', nome: 'Canal radicular', a: [0, 0.11, 0], b: [0, -1.345, 0], r1: 0.038, r2: 0.011, texto: 'Canal único na maior parte dos casos. Uma parte dos primeiros pré-molares inferiores tem o canal dividido no terço médio.' }],
@@ -160,6 +168,7 @@ const PM2I: MolarSuperior = {
   raizes: [{ id: 'raiz', nome: 'Raiz', a: [0, 0.1, 0.05], b: [0, -1.32, 0.02], r1: 0.18, r2: 0.045, fora: [0, 0, 1], gemea: [[0, 0.1, -0.05], [0, -1.32, -0.02]], texto: 'Raiz única, cônica e mais longa e volumosa que a do primeiro pré-molar inferior.' }],
   uniao: 0.16,
   curva: 0.09,
+  inclina: [0, -0.16],
   furcas: [],
   camara: { c: [0, 0.17, 0], r: [0.1, 0.1, 0.14] },
   canais: [{ id: 'canal', nome: 'Canal radicular', a: [0, 0.11, 0], b: [0, -1.365, 0], r1: 0.04, r2: 0.011, texto: 'Canal único, amplo e de secção ovalada.' }],

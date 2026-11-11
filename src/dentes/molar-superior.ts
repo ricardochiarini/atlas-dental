@@ -7,7 +7,7 @@
    em revisão pelo autor. */
 import type { Dente, Estrutura, V } from '../atlas';
 import type { Modelo } from '../modelo';
-import { caixa, capsula, cava, colo, cone, dobra, elipse, esfera, une, type No } from '../no';
+import { caixa, capsula, cava, cisalha, colo, cone, dobra, elipse, esfera, une, type No } from '../no';
 
 interface Cuspide { id: string; nome: string; texto: string; c: V; r: number; corno: [V, V, number, number]; cornoNome: string; cornoTexto: string }
 interface Sulco { id: string; nome: string; texto: string; a: V; b: V; r: number; desce?: boolean }
@@ -30,6 +30,12 @@ export interface MolarSuperior {
   raizes: Raiz[];
   uniao: number;
   curva: number;
+  /** inclinação da coroa em relação à raiz: [mesial (−) / distal (+), lingual (−) / vestibular (+)] por unidade de altura */
+  inclina?: [number, number];
+  /** sulcos longitudinais das raízes: cones escavados [início, fim, raio inicial, raio final], no espaço reto da raiz */
+  sulcosRaiz?: [V, V, number, number][];
+  /** depressões escavadas no dente pronto (por exemplo a concavidade mesial do primeiro pré-molar superior) */
+  depressoes?: { c: V; r: V }[];
   /** entradas da furca: [ponto, direção]; vazio quando as raízes são fusionadas */
   furcas: [V, V][];
   camara: { c: V; r: V };
@@ -49,6 +55,13 @@ const sinal = (v: number) => (v < 0 ? -1 : 1);
 
 export function molarSuperior(p: MolarSuperior): Dente {
   const naRaiz = (no: No) => dobra(p.curva, ALTURA, no);
+  const Y0 = 0.05; // a coroa se inclina a partir do colo
+  const [incX, incZ] = p.inclina ?? [0, 0];
+  const inclinada = (no: No) => (incX || incZ ? cisalha(incX, incZ, Y0, no) : no);
+
+  /* crista triangular de cada cúspide: desce do vértice em direção ao sulco principal */
+  const fundo = p.sulcos[0].a[1] - 0.035;
+  const cristaDe = (c: Cuspide): [V, V] => [[c.c[0], c.c[1] + c.r - 0.045, c.c[2]], [c.c[0] * 0.45, fundo, c.c[2] * 0.14]];
 
   /* ---------- forma externa ---------- */
   const macico = une(
@@ -57,14 +70,15 @@ export function molarSuperior(p: MolarSuperior): Dente {
     ...p.cuspides.map((c) => esfera(c.c, c.r)),
     ...(p.ponte ? [capsula(p.ponte.a, p.ponte.b, p.ponte.r)] : []),
   );
-  const escavado = cava(0.07, cava(0.09, macico, ...p.fossetas.map((f) => elipse(f.c, f.r))), ...p.sulcos.map((s) => capsula(s.a, s.b, s.r)));
+  const escavado = cava(0.07, une(0.06, cava(0.09, macico, ...p.fossetas.map((f) => elipse(f.c, f.r))), ...p.cuspides.map((c) => capsula(...cristaDe(c), 0.04))), ...p.sulcos.map((s) => capsula(s.a, s.b, s.r)));
   const coroa = p.tuberculo ? une(0.05, escavado, esfera(p.tuberculo.c, p.tuberculo.r)) : escavado;
-  const raizes = naRaiz(une(p.uniao, ...p.raizes.flatMap((r) => [cone(r.a, r.b, r.r1, r.r2), ...(r.gemea ? [cone(r.gemea[0], r.gemea[1], r.r1, r.r2)] : [])])));
+  const macicas = une(p.uniao, ...p.raizes.flatMap((r) => [cone(r.a, r.b, r.r1, r.r2), ...(r.gemea ? [cone(r.gemea[0], r.gemea[1], r.r1, r.r2)] : [])]));
+  const raizes = naRaiz(p.sulcosRaiz?.length ? cava(0.05, macicas, ...p.sulcosRaiz.map((s) => cone(...s))) : macicas);
   const superior = (p.arco ?? 'superior') === 'superior';
   const lingual = superior ? 'palatina' : 'lingual';
 
   /* ---------- cavidade pulpar ---------- */
-  const polpa = une(0.05, elipse(p.camara.c, p.camara.r), ...p.cuspides.map((c) => cone(...c.corno)), ...p.canais.map((c) => naRaiz(cone(c.a, c.b, c.r1, c.r2))));
+  const polpa = une(0.05, inclinada(une(0.05, elipse(p.camara.c, p.camara.r), ...p.cuspides.map((c) => cone(...c.corno)))), ...p.canais.map((c) => naRaiz(cone(c.a, c.b, c.r1, c.r2))));
 
   /* ---------- estruturas nomeadas ---------- */
   function estruturas(m: Modelo): Estrutura[] {
@@ -165,18 +179,26 @@ export function molarSuperior(p: MolarSuperior): Dente {
         internas: p.canais.map((c) => m.desdobra(entre(c.a, c.b, 0.995))),
       },
     ];
-    return lista.map((e) => (p.outrosTextos?.[e.id] ? { ...e, texto: p.outrosTextos[e.id] } : e));
+    const guia = [p.cuspides[0], ...p.cuspides.filter((c) => c.c[2] < 0).slice(0, 1)];
+    lista.push({
+      id: 'crista-tri', nome: 'Crista triangular', grupo: 'Cristas e vertentes',
+      texto: 'Crista que desce do vértice de cada cúspide em direção ao sulco principal, separando as duas vertentes triturantes da cúspide.',
+      externas: guia.map((c): [V, V] => { const [a, b] = cristaDe(c); return [entre(a, b, 0.5), [0, 1, -sinal(c.c[2]) * 0.25]]; }),
+    });
+    /* os pontos foram descritos no dente reto: aplica a inclinação da coroa a eles */
+    return lista.map((e) => ({ ...e, texto: p.outrosTextos?.[e.id] ?? e.texto, externas: e.externas?.map(([a, n]): [V, V] => [m.inclina(a), n]), internas: e.grupo === 'Cavidade pulpar' ? e.internas?.map(m.inclina) : e.internas }));
   }
 
   return {
     fdi: p.fdi,
     arco: superior ? 'superior' : 'inferior',
     lado: 1,
-    forma: une(0.13, coroa, raizes),
+    forma: p.depressoes?.length ? cava(0.06, une(0.13, inclinada(coroa), raizes), ...p.depressoes.map((d) => elipse(d.c, d.r))) : une(0.13, inclinada(coroa), raizes),
     polpa,
     jac: { base: 0.05, onda: 0.035 },
     esmalte: { base: 0.085, extra: 0.05, y0: 0.35, y1: 0.7, faixa: 0.22 },
     cemento: 0.022,
+    inclina: { x: incX, z: incZ, y0: Y0 },
     curva: { forca: p.curva, altura: ALTURA },
     centro: [0, -0.26, superior ? -0.05 : 0],
     raio: 1.4,

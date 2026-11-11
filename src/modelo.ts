@@ -19,6 +19,8 @@ export interface Modelo {
   escondido(p: V, n: V, olho: V, plano: V, corte: number): boolean;
   /** desfaz a curvatura das raízes: leva um ponto do eixo reto para o lugar real */
   desdobra(q: V): V;
+  /** aplica a inclinação da coroa a um ponto descrito no dente reto */
+  inclina(q: V): V;
 }
 
 export function criaModelo(def: Dente): Modelo {
@@ -86,6 +88,11 @@ export function criaModelo(def: Dente): Modelo {
     desdobra(q) {
       const t = limita(-q[1] / def.curva.altura, 0, 1);
       return [q[0] + def.curva.forca * t * t, q[1], q[2]];
+    },
+    inclina(q) {
+      const i = def.inclina;
+      const h = Math.max(q[1] - i.y0, 0);
+      return [q[0] + i.x * h, q[1], q[2] + i.z * h];
     },
   };
 }

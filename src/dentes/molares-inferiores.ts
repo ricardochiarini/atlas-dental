@@ -23,6 +23,10 @@ const M1: MolarInferior = {
   ],
   raizes: { mesial: { a: [-0.25, 0.1, 0], b: [-0.34, -1.3, 0], r1: 0.26, r2: 0.055 }, distal: { a: [0.25, 0.1, 0], b: [0.3, -1.2, 0], r1: 0.24, r2: 0.055 }, uniao: 0.1 },
   curva: 0.1,
+  /* coroa inclinada para lingual e de leve para mesial, como em todos os posteriores inferiores */
+  inclina: [-0.03, -0.16],
+  /* raiz mesial com sulco nas duas faces proximais (secção em forma de 8); raiz distal com sulco raso na face mesial */
+  sulcosRaiz: [[[-0.5, -0.2, 0], [-0.43, -1.0, 0], 0.06, 0.03], [[-0.09, -0.45, 0], [-0.21, -1.0, 0], 0.05, 0.03], [[0.1, -0.45, 0], [0.19, -0.95, 0], 0.04, 0.025]],
   furca: -0.1,
   camara: { c: [0, 0.17, 0], r: [0.22, 0.1, 0.14] },
   canais: [
@@ -64,6 +68,8 @@ const M2: MolarInferior = {
   ],
   raizes: { mesial: { a: [-0.2, 0.1, 0], b: [-0.21, -1.16, 0], r1: 0.24, r2: 0.055 }, distal: { a: [0.2, 0.1, 0], b: [0.19, -1.08, 0], r1: 0.225, r2: 0.055 }, uniao: 0.1 },
   curva: 0.17,
+  inclina: [-0.03, -0.17],
+  sulcosRaiz: [[[-0.4, -0.25, 0], [-0.3, -0.95, 0], 0.05, 0.025]],
   furca: -0.28,
   camara: { c: [0, 0.17, 0], r: [0.19, 0.095, 0.13] },
   canais: [
@@ -105,6 +111,7 @@ const M3: MolarInferior = {
   ],
   raizes: { mesial: { a: [-0.13, 0.1, 0], b: [-0.11, -0.96, 0], r1: 0.24, r2: 0.06 }, distal: { a: [0.13, 0.1, 0], b: [0.1, -0.9, 0], r1: 0.225, r2: 0.06 }, uniao: 0.17 },
   curva: 0.3,
+  inclina: [-0.04, -0.15],
   furca: null,
   camara: { c: [0, 0.17, 0], r: [0.17, 0.09, 0.12] },
   canais: [

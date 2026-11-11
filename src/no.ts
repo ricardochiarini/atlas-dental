@@ -22,6 +22,8 @@ export type No =
   | { t: 'dobra'; forca: number; altura: number; no: No }
   /** multiplica as coordenadas antes de medir: valores menores que 1 alargam a peça */
   | { t: 'escala'; s: V; no: No }
+  /** inclina a peça acima de y0: a cada unidade de altura ela se desloca kx em x e kz em z (inclinação da coroa) */
+  | { t: 'cisalha'; kx: number; kz: number; y0: number; no: No }
   /** espelha no eixo mésio-distal: transforma um dente esquerdo no direito */
   | { t: 'espelho'; no: No };
 
@@ -36,6 +38,7 @@ export const cava = (k: number, base: No, ...nos: No[]): No => ({ t: 'cava', k, 
 export const colo = (y0: number, y1: number, min: number, no: No): No => ({ t: 'colo', y0, y1, min, no });
 export const dobra = (forca: number, altura: number, no: No): No => ({ t: 'dobra', forca, altura, no });
 export const escala = (s: V, no: No): No => ({ t: 'escala', s, no });
+export const cisalha = (kx: number, kz: number, y0: number, no: No): No => ({ t: 'cisalha', kx, kz, y0, no });
 export const espelho = (no: No): No => ({ t: 'espelho', no });
 
 /* ---------- matemática comum ---------- */
@@ -106,6 +109,10 @@ export function avalia(no: No, p: V): number {
     }
     case 'escala':
       return avalia(no.no, [p[0] * no.s[0], p[1] * no.s[1], p[2] * no.s[2]]);
+    case 'cisalha': {
+      const h = Math.max(p[1] - no.y0, 0);
+      return avalia(no.no, [p[0] - no.kx * h, p[1], p[2] - no.kz * h]);
+    }
     case 'espelho':
       return avalia(no.no, [-p[0], p[1], p[2]]);
   }
@@ -157,6 +164,10 @@ export function emite(no: No, nome: string): string {
       }
       case 'escala':
         return expr(n.no, `(${pt} * ${v3(n.s)})`);
+      case 'cisalha': {
+        const dentro = expr(n.no, 'q');
+        return `${nova(`  float h = max(p.y - ${f(n.y0)}, 0.0);\n  vec3 q = p; q.x -= ${f(n.kx)} * h; q.z -= ${f(n.kz)} * h;\n  return ${dentro};`)}(${pt})`;
+      }
       case 'espelho':
         return expr(n.no, `(${pt} * vec3(-1.0, 1.0, 1.0))`);
     }

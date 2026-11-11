@@ -45,6 +45,8 @@ export interface Dente {
   /** esmalte: espessura no colo e acréscimo nas cúspides (entre y0 e y1); `faixa` é a altura em que ele afina até zero */
   esmalte: { base: number; extra: number; y0: number; y1: number; faixa: number };
   cemento: number;
+  /** inclinação da coroa: deslocamento em x e em z por unidade de altura acima de y0 (a mesma do nó `cisalha`) */
+  inclina: { x: number; z: number; y0: number };
   /** curvatura das raízes, a mesma usada nos nós `dobra` da forma */
   curva: { forca: number; altura: number };
   /** esfera que envolve o dente (o shader só percorre raios dentro dela) e altura do chão */
