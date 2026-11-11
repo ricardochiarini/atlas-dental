@@ -7,7 +7,7 @@
    em revisão pelo autor. */
 import type { Dente, Estrutura, V } from '../atlas';
 import type { Modelo } from '../modelo';
-import { caixa, capsula, cava, cisalha, colo, cone, dobra, elipse, esfera, une, type No } from '../no';
+import { caixa, capsula, cava, cisalha, colo, cone, desliza, dobra, elipse, esfera, funil, une, type No } from '../no';
 
 interface Cuspide { id: string; nome: string; texto: string; c: V; r: number; corno: [V, V, number, number]; cornoNome: string; cornoTexto: string }
 interface Sulco { id: string; nome: string; texto: string; a: V; b: V; r: number; desce?: boolean }
@@ -20,7 +20,7 @@ export interface MolarSuperior {
   /** o molde serve a todos os dentes posteriores; sem este campo o dente é superior */
   arco?: 'superior' | 'inferior';
   /** `oval`: contorno oclusal ovalado (pré-molares) em vez do quadrilátero arredondado dos molares */
-  coroa: { b: V; r: number; oval?: boolean };
+  coroa: { b: V; r: number; oval?: boolean; /** contorno romboidal: quanto a metade vestibular avança para mesial */ romboide?: number; /** estreitamento da metade lingual (1 = nenhum) */ funil?: number };
   cuspides: Cuspide[];
   /** ponte de esmalte (crista oblíqua), da cúspide mésio-palatina à disto-vestibular */
   ponte: { a: V; b: V; r: number; nome?: string; texto?: string } | null;
@@ -68,9 +68,12 @@ export function molarSuperior(p: MolarSuperior): Dente {
   const cristaDe = (c: Cuspide): [V, V] => [[c.c[0], c.c[1] + c.r - 0.045, c.c[2]], [c.c[0] * 0.45, fundo, c.c[2] * 0.14]];
 
   /* ---------- forma externa ---------- */
+  const bloco = p.coroa.oval ? elipse([0, 0.34, 0], [p.coroa.b[0] + p.coroa.r, (p.coroa.b[1] + p.coroa.r) * 0.9, p.coroa.b[2] + p.coroa.r]) : caixa([0, 0.34, 0], p.coroa.b, p.coroa.r);
+  const afunilado = p.coroa.funil ? funil(-(p.coroa.b[2] + p.coroa.r), 0.12, p.coroa.funil, bloco) : bloco;
+  const contorno = p.coroa.romboide ? desliza(-p.coroa.romboide, afunilado) : afunilado;
   const macico = une(
     0.12,
-    colo(-0.05, 0.42, 0.8, p.coroa.oval ? elipse([0, 0.34, 0], [p.coroa.b[0] + p.coroa.r, (p.coroa.b[1] + p.coroa.r) * 0.9, p.coroa.b[2] + p.coroa.r]) : caixa([0, 0.34, 0], p.coroa.b, p.coroa.r)),
+    colo(-0.05, 0.42, 0.8, contorno),
     ...p.cuspides.map((c) => esfera(c.c, c.r)),
     ...(p.ponte ? [capsula(p.ponte.a, p.ponte.b, p.ponte.r)] : []),
   );

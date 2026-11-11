@@ -6,7 +6,7 @@ import { molarInferior, type MolarInferior } from './molar-inferior';
 /* ---------- 36: primeiro molar inferior ---------- */
 const M1: MolarInferior = {
   fdi: 36,
-  coroa: { b: [0.3, 0.17, 0.25], r: 0.21 },
+  coroa: { b: [0.34, 0.17, 0.31], r: 0.21 },
   cuspides: [
     { id: 'cusp-mv', nome: 'Cúspide mésio-vestibular', c: [-0.3, 0.6, 0.22], r: 0.17, corno: [[-0.16, 0.2, 0.1], [-0.26, 0.4, 0.19], 0.045, 0.014], texto: 'A maior das três cúspides vestibulares. É uma cúspide de contenção: oclui na fosseta e nas cristas marginais dos dentes superiores.', cornoNome: 'Corno pulpar mésio-vestibular', cornoTexto: 'Prolongamento da câmara em direção à cúspide mésio-vestibular. É o mais alto e o mais exposto a uma abertura acidental.' },
     { id: 'cusp-cv', nome: 'Cúspide médio-vestibular', c: [0.04, 0.59, 0.24], r: 0.16, corno: [[0.09, 0.2, 0.1], [0.06, 0.39, 0.2], 0.042, 0.014], texto: 'A cúspide vestibular do meio, entre os sulcos mésio-vestibular e disto-vestibular.', cornoNome: 'Corno pulpar médio-vestibular', cornoTexto: 'Prolongamento da câmara em direção à cúspide médio-vestibular.' },
@@ -54,7 +54,7 @@ const M1: MolarInferior = {
    mais próximas e mais inclinadas para distal, com tronco radicular mais longo. */
 const M2: MolarInferior = {
   fdi: 37,
-  coroa: { b: [0.26, 0.16, 0.24], r: 0.2 },
+  coroa: { b: [0.325, 0.16, 0.3], r: 0.2 },
   cuspides: [
     { id: 'cusp-mv', nome: 'Cúspide mésio-vestibular', c: [-0.24, 0.585, 0.21], r: 0.17, corno: [[-0.13, 0.2, 0.09], [-0.21, 0.39, 0.18], 0.043, 0.014], texto: 'A maior das duas cúspides vestibulares. É uma cúspide de contenção.', cornoNome: 'Corno pulpar mésio-vestibular', cornoTexto: 'Prolongamento da câmara em direção à cúspide mésio-vestibular. É o mais alto.' },
     { id: 'cusp-dv', nome: 'Cúspide disto-vestibular', c: [0.22, 0.565, 0.2], r: 0.165, corno: [[0.12, 0.2, 0.09], [0.19, 0.37, 0.17], 0.04, 0.013], texto: 'A segunda cúspide vestibular. No segundo molar não há uma terceira cúspide, a distal.', cornoNome: 'Corno pulpar disto-vestibular', cornoTexto: 'Prolongamento da câmara em direção à cúspide disto-vestibular.' },
@@ -97,7 +97,7 @@ const M2: MolarInferior = {
    baixas, raízes curtas, fusionadas e bem curvadas para distal, com dois canais. */
 const M3: MolarInferior = {
   fdi: 38,
-  coroa: { b: [0.23, 0.15, 0.22], r: 0.2 },
+  coroa: { b: [0.3, 0.15, 0.275], r: 0.2 },
   cuspides: [
     { id: 'cusp-mv', nome: 'Cúspide mésio-vestibular', c: [-0.2, 0.55, 0.19], r: 0.165, corno: [[-0.1, 0.2, 0.08], [-0.17, 0.36, 0.15], 0.04, 0.013], texto: 'Em geral a cúspide mais desenvolvida do terceiro molar.', cornoNome: 'Corno pulpar mésio-vestibular', cornoTexto: 'Prolongamento da câmara em direção à cúspide mésio-vestibular.' },
     { id: 'cusp-dv', nome: 'Cúspide disto-vestibular', c: [0.19, 0.52, 0.17], r: 0.15, corno: [[0.1, 0.19, 0.07], [0.15, 0.33, 0.13], 0.036, 0.012], texto: 'Menor e mais baixa. No terceiro molar as cúspides distais são as que mais variam.', cornoNome: 'Corno pulpar disto-vestibular', cornoTexto: 'Prolongamento da câmara em direção à cúspide disto-vestibular.' },

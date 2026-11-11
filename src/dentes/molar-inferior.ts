@@ -68,7 +68,7 @@ export function molarInferior(p: MolarInferior): Dente {
   );
   const { mesial, distal } = p.raizes;
   const macicas = une(p.raizes.uniao, cone(mesial.a, mesial.b, mesial.r1, mesial.r2), cone(distal.a, distal.b, distal.r1, distal.r2));
-  const raizes = naRaiz(escala([1, 1, 0.86], p.sulcosRaiz?.length ? cava(0.05, macicas, ...p.sulcosRaiz.map((s) => cone(...s))) : macicas));
+  const raizes = naRaiz(escala([1, 1, 0.7], p.sulcosRaiz?.length ? cava(0.05, macicas, ...p.sulcosRaiz.map((s) => cone(...s))) : macicas));
 
   /* ---------- cavidade pulpar: câmara, um corno por cúspide e os canais ---------- */
   const polpa = une(

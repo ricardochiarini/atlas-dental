@@ -6,8 +6,8 @@ import { anterior, type Anterior } from './anterior';
 /* ---------- 21: incisivo central superior ---------- */
 const IC_S: Anterior = {
   fdi: 21, arco: 'superior', canino: false,
-  T: 1.08, W: 0.42, E: 0.34, distal: 0.1, mamelos: true,
-  raiz: { fim: [0, -1.22, 0], r1: 0.3, r2: 0.05, achata: 1, triangular: true },
+  T: 1.12, W: 0.43, E: 0.36, distal: 0.1, colo: 0.76,
+  raiz: { fim: [0, -1.23, 0], r1: 0.3, r2: 0.05, achata: 1, triangular: true },
   curva: 0.05,
   textos: {
     'face-v': 'Voltada para o lábio. É a maior face vestibular dos incisivos: trapezoidal, quase plana no terço incisal e convexa no cervical.',
@@ -26,7 +26,7 @@ const IC_S: Anterior = {
 /* ---------- 22: incisivo lateral superior ---------- */
 const IL_S: Anterior = {
   fdi: 22, arco: 'superior', canino: false,
-  T: 0.95, W: 0.32, E: 0.3, distal: 0.23, mesial: 0.1, fossa: 0.74, forameCego: true,
+  T: 0.97, W: 0.325, E: 0.31, distal: 0.23, colo: 0.7, mesial: 0.1, fossa: 0.74, forameCego: true,
   raiz: { fim: [0, -1.24, 0], r1: 0.25, r2: 0.045, achata: 1.15 },
   curva: 0.1,
   textos: {
@@ -46,7 +46,7 @@ const IL_S: Anterior = {
 /* ---------- 23: canino superior ---------- */
 const C_S: Anterior = {
   fdi: 23, arco: 'superior', canino: true,
-  T: 1.05, W: 0.37, E: 0.4, distal: 0,
+  T: 1.07, W: 0.375, E: 0.41, distal: 0,
   raiz: { fim: [0, -1.62, 0], r1: 0.31, r2: 0.05, achata: 1.1 },
   curva: 0.08,
   textos: {
@@ -66,7 +66,7 @@ const C_S: Anterior = {
 /* ---------- 31: incisivo central inferior ---------- */
 const IC_I: Anterior = {
   fdi: 31, arco: 'inferior', canino: false,
-  T: 0.93, W: 0.26, E: 0.3, distal: 0.03, fossa: 0.42,
+  T: 0.97, W: 0.25, E: 0.31, distal: 0.03, colo: 0.66, fossa: 0.42,
   raiz: { fim: [0, -1.18, 0], r1: 0.26, r2: 0.045, achata: 1.55, sulcos: true },
   curva: 0.03,
   textos: {
@@ -86,7 +86,7 @@ const IC_I: Anterior = {
 /* ---------- 32: incisivo lateral inferior ---------- */
 const IL_I: Anterior = {
   fdi: 32, arco: 'inferior', canino: false,
-  T: 0.98, W: 0.29, E: 0.32, distal: 0.1, fossa: 0.42,
+  T: 1.02, W: 0.275, E: 0.33, distal: 0.1, colo: 0.68, fossa: 0.42,
   raiz: { fim: [0, -1.33, 0], r1: 0.27, r2: 0.045, achata: 1.5, sulcos: true },
   curva: 0.06,
   textos: {
@@ -106,7 +106,7 @@ const IL_I: Anterior = {
 /* ---------- 33: canino inferior ---------- */
 const C_I: Anterior = {
   fdi: 33, arco: 'inferior', canino: true,
-  T: 1.12, W: 0.34, E: 0.37, distal: 0,
+  T: 1.17, W: 0.35, E: 0.385, distal: 0, arestas: [0.8, 0.62], relevoLingual: 0.45,
   raiz: { fim: [0, -1.52, 0], r1: 0.29, r2: 0.05, achata: 1.3 },
   curva: 0.06,
   textos: {

@@ -17,7 +17,7 @@ const COMUNS = {
    Duas cúspides, com a vestibular maior. É o único pré-molar que costuma ter duas raízes. */
 const PM1S: MolarSuperior = {
   fdi: 24,
-  coroa: { b: [0.16, 0.17, 0.24], r: 0.19, oval: true },
+  coroa: { b: [0.16, 0.17, 0.26], r: 0.19, oval: true, funil: 0.82 },
   cuspides: [
     { id: 'cusp-v', nome: 'Cúspide vestibular', c: [-0.01, 0.64, 0.2], r: 0.2, corno: [[0, 0.2, 0.1], [0, 0.45, 0.17], 0.04, 0.013], texto: 'A maior e mais alta das duas, de vértice agudo. É a cúspide de balanceio.', cornoNome: 'Corno pulpar vestibular', cornoTexto: 'Prolongamento da câmara em direção à cúspide vestibular. É o mais alto.' },
     { id: 'cusp-p', nome: 'Cúspide palatina', c: [-0.03, 0.58, -0.2], r: 0.17, corno: [[0, 0.2, -0.1], [-0.02, 0.4, -0.16], 0.036, 0.012], texto: 'Mais baixa e mais arredondada, deslocada para mesial. É a cúspide de contenção.', cornoNome: 'Corno pulpar palatino', cornoTexto: 'Prolongamento da câmara em direção à cúspide palatina.' },
@@ -66,7 +66,7 @@ const PM1S: MolarSuperior = {
    Cúspides quase do mesmo tamanho, coroa mais arredondada e raiz única. */
 const PM2S: MolarSuperior = {
   fdi: 25,
-  coroa: { b: [0.15, 0.17, 0.23], r: 0.19, oval: true },
+  coroa: { b: [0.16, 0.17, 0.26], r: 0.19, oval: true, funil: 0.92 },
   cuspides: [
     { id: 'cusp-v', nome: 'Cúspide vestibular', c: [0, 0.62, 0.2], r: 0.19, corno: [[0, 0.2, 0.09], [0, 0.43, 0.16], 0.038, 0.013], texto: 'Menos aguda que a do primeiro pré-molar. As duas cúspides têm quase a mesma altura.', cornoNome: 'Corno pulpar vestibular', cornoTexto: 'Prolongamento da câmara em direção à cúspide vestibular.' },
     { id: 'cusp-p', nome: 'Cúspide palatina', c: [-0.02, 0.6, -0.2], r: 0.18, corno: [[0, 0.2, -0.09], [-0.01, 0.42, -0.16], 0.038, 0.013], texto: 'Quase tão alta quanto a vestibular. É a cúspide de contenção.', cornoNome: 'Corno pulpar palatino', cornoTexto: 'Prolongamento da câmara em direção à cúspide palatina.' },
@@ -108,7 +108,7 @@ const PM2S: MolarSuperior = {
 const PM1I: MolarSuperior = {
   fdi: 34,
   arco: 'inferior',
-  coroa: { b: [0.15, 0.17, 0.2], r: 0.19, oval: true },
+  coroa: { b: [0.16, 0.17, 0.185], r: 0.19, oval: true, funil: 0.8 },
   cuspides: [
     { id: 'cusp-v', nome: 'Cúspide vestibular', c: [0, 0.66, 0.1], r: 0.2, corno: [[0, 0.2, 0.05], [0, 0.46, 0.09], 0.04, 0.013], texto: 'Grande e aguda, com o vértice deslocado para o centro da coroa. Faz quase todo o trabalho do dente.', cornoNome: 'Corno pulpar vestibular', cornoTexto: 'Prolongamento da câmara em direção à cúspide vestibular. É o único bem desenvolvido.' },
     { id: 'cusp-l', nome: 'Cúspide lingual', c: [-0.02, 0.48, -0.23], r: 0.12, corno: [[0, 0.19, -0.08], [-0.01, 0.3, -0.17], 0.026, 0.01], texto: 'Pequena e baixa: não alcança o dente antagonista. Por isso o primeiro pré-molar inferior lembra um canino.', cornoNome: 'Corno pulpar lingual', cornoTexto: 'Quase ausente, como a cúspide.' },

@@ -26,6 +26,12 @@ export interface Anterior {
   fossa?: number;
   /** fosseta lingual (forame cego), acima do cíngulo */
   forameCego?: boolean;
+  /** largura no colo em relação à largura máxima da coroa (padrão 0.62) */
+  colo?: number;
+  /** caninos: altura em que cada aresta chega à área de contato [mesial, distal], em fração da coroa */
+  arestas?: [number, number];
+  /** caninos: quanto o cíngulo, a crista e as fossas linguais são marcados (1 = canino superior) */
+  relevoLingual?: number;
   /** mamelões: os três lobos ainda visíveis na borda incisal do dente recém-irrompido */
   mamelos?: boolean;
   /** `triangular`: secção triangular arredondada, com a base para vestibular */
@@ -52,6 +58,7 @@ export function anterior(p: Anterior): Dente {
   let coroa: No;
   if (p.canino) {
     /* corpo bojudo mais um cone que sobe até o vértice da cúspide, um pouco para mesial */
+    const RL = p.relevoLingual ?? 1;
     const bojo = afila(0, 0.6 * T, 0.78, elipse([0, 0.42 * T, 0], [W * 1.05, 0.62 * T, E]));
     /* crista vestibular: elevação que desce do vértice da cúspide até o terço cervical */
     const comCrista = une(0.12, bojo, capsula([-0.02, 0.86 * T, 0.68 * E - 0.06], [0, 0.34 * T, E - 0.065], 0.08));
@@ -62,15 +69,15 @@ export function anterior(p: Anterior): Dente {
       const nx = (Math.sign(xc) * Math.abs(ty)) / tam, ny = Math.abs(tx) / tam;
       return esfera([(xc - 0.03) / 2 + nx * 1.52, (yc + T) / 2 + ny * 1.52, 0], 1.5);
     };
-    const corpo = cava(0.05, comCrista, aresta(-W, 0.7 * T), aresta(W, 0.56 * T));
+    const corpo = cava(0.05, comCrista, aresta(-W, (p.arestas?.[0] ?? 0.7) * T), aresta(W, (p.arestas?.[1] ?? 0.56) * T));
     /* duas fossas linguais, separadas pela crista lingual */
-    coroa = cava(0.06, corpo, elipse([-W * 0.47, 0.6 * T, -E * 0.82], [W * 0.3, 0.2 * T, E * 0.3]), elipse([W * 0.47, 0.58 * T, -E * 0.82], [W * 0.3, 0.19 * T, E * 0.3]));
-    coroa = une(0.09, coroa, esfera([0, 0.2 * T, -E * 0.5], E * 0.55)); // cíngulo
+    coroa = cava(0.06, corpo, elipse([-W * 0.47, 0.6 * T, -E * 0.82], [W * 0.3, 0.2 * T, E * 0.3 * RL]), elipse([W * 0.47, 0.58 * T, -E * 0.82], [W * 0.3, 0.19 * T, E * 0.3 * RL]));
+    coroa = une(0.09, coroa, esfera([0, 0.2 * T, -E * 0.5], E * (0.4 + 0.15 * RL))); // cíngulo
     /* espessa no terço cervical e mais fina na cúspide, menos que nos incisivos */
     coroa = cunha(T, 0.35 * T, 0.56, coroa);
   } else {
     /* mais larga no terço incisal, onde ficam as áreas de contato, e estreitando para o colo */
-    const corpo = afila(0, 0.85 * T, 0.62, elipse([0, 0.4 * T, 0], [W * 1.15, 0.8 * T, E]));
+    const corpo = afila(0, 0.85 * T, p.colo ?? 0.62, elipse([0, 0.4 * T, 0], [W * 1.15, 0.8 * T, E]));
     /* borda incisal: corte reto no topo, com o ângulo distal mais arredondado que o mesial */
     const aparada = cava(0.035, corpo, caixa([0, T + 0.5, 0], [2, 0.5, 2], 0), esfera([W + 0.33 - p.distal, T + 0.3, 0], 0.42), ...(p.mesial ? [esfera([-(W + 0.33 - p.mesial), T + 0.3, 0], 0.42)] : []), ...(p.mamelos ? [-1, 1].map((s) => esfera([s * W * 0.3, T + 0.022, 0], 0.04)) : []));
     /* fossa lingual, entre as cristas marginais; abaixo dela fica o cíngulo */

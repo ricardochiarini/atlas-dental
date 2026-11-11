@@ -26,6 +26,10 @@ export type No =
   | { t: 'escala'; s: V; no: No }
   /** inclina a peça acima de y0: a cada unidade de altura ela se desloca kx em x e kz em z (inclinação da coroa) */
   | { t: 'cisalha'; kx: number; kz: number; y0: number; no: No }
+  /** desloca a peça no sentido mésio-distal conforme a posição vestíbulo-lingual: transforma um retângulo num losango */
+  | { t: 'desliza'; k: number; no: No }
+  /** estreita a largura mésio-distal em direção lingual: abaixo de z0 ela cai para `min` */
+  | { t: 'funil'; z0: number; z1: number; min: number; no: No }
   /** espelha no eixo mésio-distal: transforma um dente esquerdo no direito */
   | { t: 'espelho'; no: No };
 
@@ -46,6 +50,8 @@ export const relevo = (no: No, ...sulcos: { x: number; larg: number; prof: numbe
 export const dobra = (forca: number, altura: number, no: No): No => ({ t: 'dobra', forca, altura, no });
 export const escala = (s: V, no: No): No => ({ t: 'escala', s, no });
 export const cisalha = (kx: number, kz: number, y0: number, no: No): No => ({ t: 'cisalha', kx, kz, y0, no });
+export const desliza = (k: number, no: No): No => ({ t: 'desliza', k, no });
+export const funil = (z0: number, z1: number, min: number, no: No): No => ({ t: 'funil', z0, z1, min, no });
 export const espelho = (no: No): No => ({ t: 'espelho', no });
 
 /* ---------- matemática comum ---------- */
@@ -120,6 +126,12 @@ export function avalia(no: No, p: V): number {
       const t = limita(-p[1] / no.altura, 0, 1);
       return avalia(no.no, [p[0] - no.forca * t * t, p[1], p[2]]);
     }
+    case 'desliza':
+      return avalia(no.no, [p[0] - no.k * p[2], p[1], p[2]]);
+    case 'funil': {
+      const s = no.min + (1 - no.min) * degrau(no.z0, no.z1, p[2]);
+      return avalia(no.no, [p[0] / s, p[1], p[2]]) * s;
+    }
     case 'escala':
       return avalia(no.no, [p[0] * no.s[0], p[1] * no.s[1], p[2] * no.s[2]]);
     case 'cisalha': {
@@ -190,6 +202,12 @@ export function emite(no: No, nome: string): string {
       case 'dobra': {
         const dentro = expr(n.no, 'q');
         return `${nova(`  float t = clamp(-p.y / ${f(n.altura)}, 0.0, 1.0);\n  vec3 q = p; q.x -= ${f(n.forca)} * t * t;\n  return ${dentro};`)}(${pt})`;
+      }
+      case 'desliza':
+        return expr(n.no, `(${pt} - vec3(${f(n.k)} * (${pt}).z, 0.0, 0.0))`);
+      case 'funil': {
+        const linhas = [`  float s = mix(${f(n.min)}, 1.0, smoothstep(${f(n.z0)}, ${f(n.z1)}, p.z));`, '  vec3 q = p; q.x /= s;', `  return ${expr(n.no, 'q')} * s;`];
+        return `${nova(linhas.join('\n'))}(${pt})`;
       }
       case 'escala':
         return expr(n.no, `(${pt} * ${v3(n.s)})`);
