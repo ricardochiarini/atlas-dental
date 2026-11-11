@@ -19,7 +19,8 @@ export interface MolarSuperior {
   fdi: number;
   /** o molde serve a todos os dentes posteriores; sem este campo o dente é superior */
   arco?: 'superior' | 'inferior';
-  coroa: { b: V; r: number };
+  /** `oval`: contorno oclusal ovalado (pré-molares) em vez do quadrilátero arredondado dos molares */
+  coroa: { b: V; r: number; oval?: boolean };
   cuspides: Cuspide[];
   /** ponte de esmalte (crista oblíqua), da cúspide mésio-palatina à disto-vestibular */
   ponte: { a: V; b: V; r: number; nome?: string; texto?: string } | null;
@@ -66,7 +67,7 @@ export function molarSuperior(p: MolarSuperior): Dente {
   /* ---------- forma externa ---------- */
   const macico = une(
     0.12,
-    colo(-0.05, 0.42, 0.8, caixa([0, 0.34, 0], p.coroa.b, p.coroa.r)),
+    colo(-0.05, 0.42, 0.8, p.coroa.oval ? elipse([0, 0.34, 0], [p.coroa.b[0] + p.coroa.r, (p.coroa.b[1] + p.coroa.r) * 1.04, p.coroa.b[2] + p.coroa.r]) : caixa([0, 0.34, 0], p.coroa.b, p.coroa.r)),
     ...p.cuspides.map((c) => esfera(c.c, c.r)),
     ...(p.ponte ? [capsula(p.ponte.a, p.ponte.b, p.ponte.r)] : []),
   );
