@@ -8,7 +8,7 @@
    em revisão pelo autor. */
 import type { Dente, Estrutura, V } from '../atlas';
 import type { Modelo } from '../modelo';
-import { afila, caixa, cava, cisalha, cone, cunha, dobra, elipse, escala, esfera, relevo, une, type No } from '../no';
+import { afila, caixa, capsula, cava, cisalha, cone, cunha, dobra, elipse, escala, esfera, relevo, une, type No } from '../no';
 
 export interface Anterior {
   fdi: number;
@@ -50,10 +50,22 @@ export function anterior(p: Anterior): Dente {
   let coroa: No;
   if (p.canino) {
     /* corpo bojudo mais um cone que sobe até o vértice da cúspide, um pouco para mesial */
-    const corpo = une(0.1, afila(0, 0.6 * T, 0.78, elipse([0, 0.38 * T, 0], [W * 1.05, 0.56 * T, E])), cone([0, 0.5 * T, 0], [-0.03, T - 0.06, 0.02], W * 0.86, 0.06));
+    const bojo = afila(0, 0.6 * T, 0.78, elipse([0, 0.42 * T, 0], [W * 1.05, 0.62 * T, E]));
+    /* crista vestibular: elevação que desce do vértice da cúspide até o terço cervical */
+    const comCrista = une(0.12, bojo, capsula([-0.02, 0.86 * T, 0.68 * E - 0.06], [0, 0.34 * T, E - 0.065], 0.08));
+    /* as duas arestas dão à face vestibular o contorno pentagonal: cada uma é um corte quase
+       plano (uma esfera grande) do vértice até a área de contato; a mesial é mais curta */
+    const aresta = (xc: number, yc: number): No => {
+      const tx = xc + 0.03, ty = yc - T, tam = Math.hypot(tx, ty);
+      const nx = (Math.sign(xc) * Math.abs(ty)) / tam, ny = Math.abs(tx) / tam;
+      return esfera([(xc - 0.03) / 2 + nx * 1.52, (yc + T) / 2 + ny * 1.52, 0], 1.5);
+    };
+    const corpo = cava(0.05, comCrista, aresta(-W, 0.7 * T), aresta(W, 0.56 * T));
     /* duas fossas linguais, separadas pela crista lingual */
     coroa = cava(0.06, corpo, elipse([-W * 0.47, 0.6 * T, -E * 0.82], [W * 0.3, 0.2 * T, E * 0.3]), elipse([W * 0.47, 0.58 * T, -E * 0.82], [W * 0.3, 0.19 * T, E * 0.3]));
     coroa = une(0.09, coroa, esfera([0, 0.2 * T, -E * 0.5], E * 0.55)); // cíngulo
+    /* espessa no terço cervical e mais fina na cúspide, menos que nos incisivos */
+    coroa = cunha(T, 0.35 * T, 0.56, coroa);
   } else {
     /* mais larga no terço incisal, onde ficam as áreas de contato, e estreitando para o colo */
     const corpo = afila(0, 0.85 * T, 0.62, elipse([0, 0.4 * T, 0], [W * 1.15, 0.8 * T, E]));
@@ -81,8 +93,8 @@ export function anterior(p: Anterior): Dente {
   const raiz = naRaiz(p.raiz.triangular ? une(0.1, escala([0.85, 1, 1.2], corpoRaiz(0.05, 0.9)), corpoRaiz(-0.07, 0.78)) : corpoRaiz(0, 1));
 
   /* ---------- cavidade pulpar: câmara na coroa, cornos em direção à borda e um canal ---------- */
-  const cam = p.canino ? { c: [0, 0.36 * T, E * 0.08] as V, r: [W * 0.52, 0.28 * T, E * 0.27] as V } : { c: [0, 0.3 * T, E * 0.04] as V, r: [W * 0.5, 0.2 * T, E * 0.17] as V };
-  const cornos: [V, V][] = p.canino ? [[[0, 0.48 * T, E * 0.1], [-0.03, 0.8 * T, E * 0.08]]] : [[[-W * 0.3, 0.4 * T, E * 0.06], [-W * 0.5, 0.76 * T, E * 0.08]], [[W * 0.3, 0.4 * T, E * 0.06], [W * 0.47, 0.73 * T, E * 0.08]]];
+  const cam = p.canino ? { c: [0, 0.32 * T, E * 0.05] as V, r: [W * 0.4, 0.24 * T, E * 0.21] as V } : { c: [0, 0.3 * T, E * 0.04] as V, r: [W * 0.5, 0.2 * T, E * 0.17] as V };
+  const cornos: [V, V][] = p.canino ? [[[0, 0.42 * T, E * 0.06], [-0.03, 0.76 * T, E * 0.05]]] : [[[-W * 0.3, 0.4 * T, E * 0.06], [-W * 0.5, 0.76 * T, E * 0.08]], [[W * 0.3, 0.4 * T, E * 0.06], [W * 0.47, 0.73 * T, E * 0.08]]];
   const fimCanal: V = [p.raiz.fim[0], p.raiz.fim[1] - p.raiz.r2 + 0.01, 0];
   const polpa = une(0.05, inclinada(une(0.05, elipse(cam.c, cam.r), ...cornos.map(([a, b]) => cone(a, b, 0.03, 0.012)))), naRaiz(cone([0, 0.13, 0], fimCanal, 0.05, 0.011)));
 
@@ -124,6 +136,7 @@ export function anterior(p: Anterior): Dente {
 
     const facesLinguais: Estrutura[] = p.canino
       ? [
+          { id: 'crista-v', nome: 'Crista vestibular', grupo: 'Cristas e vertentes', texto: 'Elevação longitudinal da face vestibular, do vértice da cúspide em direção ao colo. Divide a face em duas vertentes, mesial e distal.', externas: [[[-0.01, 0.62 * T, 0], [0, 0.1, 1]]] },
           { id: 'crista-l', nome: `Crista ${lingual}`, grupo: 'Cristas e vertentes', texto: `Elevação que desce do vértice da cúspide até o cíngulo, pelo centro da face ${lingual}, dividindo a fossa em duas.`, externas: [[[0, 0.6 * T, 0], [0, 0.1, -1]]] },
           { id: 'fossa-m', nome: `Fossa mésio-${lingual}`, grupo: 'Sulcos e fossetas', texto: t.fossa, externas: [[[-W * 0.47, 0.6 * T, 0], [-0.15, 0, -1]]] },
           { id: 'fossa-d', nome: `Fossa disto-${lingual}`, grupo: 'Sulcos e fossetas', texto: `Depressão entre a crista ${lingual} e a crista marginal distal.`, externas: [[[W * 0.47, 0.58 * T, 0], [0.15, 0, -1]]] },
@@ -199,7 +212,7 @@ export function anterior(p: Anterior): Dente {
     forma: une(0.1, inclinada(coroa), raiz),
     polpa,
     jac: { base: 0.07, onda: 0.07 },
-    esmalte: { base: 0.06, extra: p.canino ? 0.035 : 0.008, y0: 0.5 * T, y1: 0.95 * T, faixa: 0.28 },
+    esmalte: { base: 0.06, extra: p.canino ? 0.016 : 0.008, y0: 0.5 * T, y1: 0.95 * T, faixa: 0.28 },
     cemento: 0.022,
     inclina: { x: incX, z: incZ, y0: Y0 },
     curva: { forca: p.curva, altura: ALTURA },
