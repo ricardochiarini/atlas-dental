@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Anatomia de um molar · Ricardo Chiarini</title>
+    <meta name="description" content="Um molar inferior desenhado inteiro em um shader WebGL, do esmalte à polpa. Sem modelo 3D e sem textura. Gire e corte ao meio." />
+    <meta name="theme-color" content="#16130F" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#E8E0CF" media="(prefers-color-scheme: light)" />
+  </head>
+  <body>
+    <canvas id="tela" tabindex="0" aria-label="Molar em três dimensões. Arraste ou use as setas do teclado para girar." role="img"></canvas>
+
+    <svg id="linhas" aria-hidden="true"></svg>
+    <ul id="rotulos" aria-hidden="true">
+      <li data-camada="esmalte"><b>Esmalte</b><span>A camada mais dura do corpo. Só cobre a coroa.</span></li>
+      <li data-camada="dentina"><b>Dentina</b><span>O corpo do dente, atravessado por túbulos.</span></li>
+      <li data-camada="polpa"><b>Polpa</b><span>Vasos e nervos, da câmara até o ápice de cada raiz.</span></li>
+      <li data-camada="cemento"><b>Cemento</b><span>Reveste a raiz e prende o dente ao osso.</span></li>
+    </ul>
+
+    <main class="folha">
+      <p class="hud">Laboratório · WebGL · sem modelo 3D</p>
+      <h1>Anatomia de <em>um molar</em></h1>
+      <p class="texto">
+        Primeiro molar inferior, do esmalte à polpa. O dente inteiro é uma função matemática calculada em cada pixel: não há malha, textura nem arquivo 3D.
+      </p>
+
+      <div class="controles">
+        <label class="hud" for="corte">Corte <output id="corte-valor">0%</output></label>
+        <input id="corte" type="range" min="0" max="100" step="1" value="0" />
+        <button id="giro" type="button" class="hud" aria-pressed="true">Girar sozinho</button>
+      </div>
+
+      <ul class="camadas hud" aria-label="Camadas do dente">
+        <li><i data-cor="esmalte"></i>Esmalte</li>
+        <li><i data-cor="dentina"></i>Dentina</li>
+        <li><i data-cor="polpa"></i>Polpa</li>
+        <li><i data-cor="cemento"></i>Cemento</li>
+      </ul>
+    </main>
+
+    <footer class="base hud">
+      <a href="https://ricardochiarini.com/lab">← Laboratório</a>
+      <span>Ilustração esquemática, não é material clínico</span>
+      <span>Ricardo Chiarini, cirurgião-dentista e desenvolvedor</span>
+    </footer>
+
+    <p id="sem-webgl" hidden>Este navegador não tem WebGL 2, que esta peça usa para desenhar o dente.</p>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
