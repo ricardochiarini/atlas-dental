@@ -20,6 +20,10 @@ export interface Anterior {
   E: number;
   /** desvio do ângulo distal: quanto mais alto, mais arredondado o ângulo disto-incisal */
   distal: number;
+  /** o mesmo para o ângulo mesial; sem valor, o ângulo fica quase reto */
+  mesial?: number;
+  /** profundidade da fossa lingual em relação à espessura da coroa (padrão 0.62) */
+  fossa?: number;
   /** fosseta lingual (forame cego), acima do cíngulo */
   forameCego?: boolean;
   /** `triangular`: secção triangular arredondada, com a base para vestibular */
@@ -54,9 +58,9 @@ export function anterior(p: Anterior): Dente {
     /* mais larga no terço incisal, onde ficam as áreas de contato, e estreitando para o colo */
     const corpo = afila(0, 0.85 * T, 0.62, elipse([0, 0.4 * T, 0], [W * 1.15, 0.8 * T, E]));
     /* borda incisal: corte reto no topo, com o ângulo distal mais arredondado que o mesial */
-    const aparada = cava(0.035, corpo, caixa([0, T + 0.5, 0], [2, 0.5, 2], 0), esfera([W + 0.33 - p.distal, T + 0.3, 0], 0.42));
+    const aparada = cava(0.035, corpo, caixa([0, T + 0.5, 0], [2, 0.5, 2], 0), esfera([W + 0.33 - p.distal, T + 0.3, 0], 0.42), ...(p.mesial ? [esfera([-(W + 0.33 - p.mesial), T + 0.3, 0], 0.42)] : []));
     /* fossa lingual, entre as cristas marginais; abaixo dela fica o cíngulo */
-    const escavada = cava(0.06, aparada, elipse([0, 0.62 * T, -E], [W * 0.72, 0.3 * T, E * 0.62]));
+    const escavada = cava(0.06, aparada, elipse([0, 0.62 * T, -E], [W * 0.72, 0.3 * T, E * (p.fossa ?? 0.62)]));
     const comCingulo = une(0.09, escavada, esfera([0, 0.2 * T, -E * 0.55], E * 0.55));
     const comFosseta = p.forameCego ? cava(0.04, comCingulo, esfera([0, 0.37 * T, -E * 0.9], 0.035)) : comCingulo;
     /* a coroa é uma cunha: espessa no terço cervical, fina na borda incisal */
@@ -72,7 +76,7 @@ export function anterior(p: Anterior): Dente {
     const a: V = [0, inicioRaiz[1], dz];
     const meioRaiz: V = [p.raiz.fim[0] * 0.6, inicioRaiz[1] + (p.raiz.fim[1] - inicioRaiz[1]) * 0.6, dz * 0.6];
     const rm = (p.raiz.r2 + (p.raiz.r1 - p.raiz.r2) * 0.56) * k;
-    return une(0.18, cone(a, meioRaiz, p.raiz.r1 * k, rm), cone(meioRaiz, p.raiz.fim, rm, p.raiz.r2));
+    return une(0.04, cone(a, meioRaiz, p.raiz.r1 * k, rm), cone(meioRaiz, p.raiz.fim, rm, p.raiz.r2));
   };
   const raiz = naRaiz(p.raiz.triangular ? une(0.1, escala([0.85, 1, 1.2], corpoRaiz(0.05, 0.9)), corpoRaiz(-0.07, 0.78)) : corpoRaiz(0, 1));
 

@@ -26,7 +26,7 @@ const IC_S: Anterior = {
 /* ---------- 22: incisivo lateral superior ---------- */
 const IL_S: Anterior = {
   fdi: 22, arco: 'superior', canino: false,
-  T: 0.95, W: 0.32, E: 0.3, distal: 0.2, forameCego: true,
+  T: 0.95, W: 0.32, E: 0.3, distal: 0.23, mesial: 0.1, fossa: 0.74, forameCego: true,
   raiz: { fim: [0, -1.24, 0], r1: 0.25, r2: 0.045, achata: 1.15 },
   curva: 0.1,
   textos: {
