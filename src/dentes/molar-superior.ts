@@ -10,7 +10,7 @@ import type { Modelo } from '../modelo';
 import { caixa, capsula, cava, cisalha, colo, cone, desliza, dobra, elipse, esfera, funil, une, type No } from '../no';
 
 interface Cuspide { id: string; nome: string; texto: string; c: V; r: number; corno: [V, V, number, number]; cornoNome: string; cornoTexto: string }
-interface Sulco { id: string; nome: string; texto: string; a: V; b: V; r: number; desce?: boolean }
+interface Sulco { id: string; nome: string; texto: string; a: V; b: V; r: number; desce?: boolean; /** ponto em que o sulco chega à face livre (calculado pelo molde) */ face?: V }
 interface Fosseta { id: string; nome: string; texto: string; c: V; r: V }
 interface Raiz { id: string; nome: string; texto: string; a: V; b: V; r1: number; r2: number; fora: V; /** segundo cone, só para a forma: dá secção oval a uma raiz única */ gemea?: [V, V] }
 interface Canal { id: string; nome: string; texto: string; a: V; b: V; r1: number; r2: number; /** termina em outro canal, sem forame próprio */ confluente?: boolean }
@@ -54,10 +54,45 @@ const entre = (a: V, b: V, t: number): V => [a[0] + (b[0] - a[0]) * t, a[1] + (b
 const reta = (a: V, b: V, n: number): V[] => Array.from({ length: n }, (_, i) => entre(a, b, i / (n - 1)));
 const sinal = (v: number) => (v < 0 ? -1 : 1);
 
+/* Relevo oclusal dos molares. As fichas dão o centro e o raio de cada cúspide; aqui elas
+   crescem até perto do contorno da coroa, e sulcos e fossetas descem, para a face oclusal
+   ter cúspides altas e vales fundos em vez de uma mesa plana. */
+export function ajustaCuspide<C extends { c: V; r: number }>(c: C, hx: number, hz: number): C {
+  let [x, y, z] = c.c;
+  let r = c.r;
+  const dz = Math.max(0, hz - 0.03 - (Math.abs(z) + r));
+  r += dz * 0.45; z += Math.sign(z) * dz * 0.55; y -= dz * 0.45;
+  if (Math.abs(x) > 0.1) {
+    const dx = Math.max(0, hx - 0.04 - (Math.abs(x) + r));
+    r += dx * 0.3; x += Math.sign(x) * dx * 0.7; y -= dx * 0.3;
+  }
+  return { ...c, c: [x, y, z], r };
+}
+export function aprofunda<S extends { a: V; b: V; r: number; desce?: boolean; face?: V }>(s: S, _hx: number, hz: number): S {
+  const a: V = [s.a[0], s.a[1] - 0.06, s.a[2]];
+  const b: V = [s.b[0], s.b[1] - 0.06, s.b[2]];
+  if (!s.desce) return { ...s, a, b, r: s.r * 1.4 };
+  /* o sulco que desce para uma face livre precisa atravessar a borda da coroa: se parasse
+     dentro da parede, apareceria como um furo redondo em vez de um entalhe */
+  const sz = Math.sign(b[2]) || 1;
+  const face: V = [b[0], b[1], sz * (hz + 0.012)];
+  return { ...s, a, b: [b[0], b[1], sz * (hz + 0.07)], r: s.r * 1.4, face };
+}
+/** corpo da coroa dos molares: mais baixo que as cúspides e de cantos bem arredondados */
+export const blocoMolar = (c: { b: V; r: number }): No => { const rr = c.r + 0.06; return caixa([0, 0.285, 0], [c.b[0] + c.r - rr, 0.075, c.b[2] + c.r - rr], rr - 0.01); };
+
+/* o sulco que separa duas cúspides e desce para a face é aberto por cima: três cápsulas
+   empilhadas formam uma fenda, em vez de um túnel sob a união das cúspides */
+const sobe = (p: V, h: number): V => [p[0], p[1] + h, p[2]];
+const fenda = (s: { a: V; b: V; r: number }): No[] => [0, 0.1, 0.2].map((h) => capsula(sobe(s.a, h), sobe(s.b, h), s.r * (1 + h * 1.5)));
 /* um sulco que chega à face livre continua por ela, cada vez mais raso, até sumir no terço médio */
-const desceFace = (s: { b: V; r: number }): No => cone(s.b, [s.b[0], s.b[1] - 0.26, s.b[2] + Math.sign(s.b[2]) * 0.05], s.r, 0.004);
+const desceFace = (s: { b: V; r: number; face?: V }): No => { const p0 = s.face ?? s.b; return cone(p0, [p0[0], p0[1] - 0.3, p0[2] + Math.sign(p0[2]) * 0.035], s.r * 0.8, 0.004); };
 
 export function molarSuperior(p: MolarSuperior): Dente {
+  if (!p.coroa.oval) {
+    const hx = p.coroa.b[0] + p.coroa.r, hz = p.coroa.b[2] + p.coroa.r;
+    p = { ...p, cuspides: p.cuspides.map((c) => ajustaCuspide(c, hx, hz)), sulcos: p.sulcos.map((s) => aprofunda(s, hx, hz)), fossetas: p.fossetas.map((f) => ({ ...f, c: [f.c[0], f.c[1] - 0.05, f.c[2]] as V })) };
+  }
   const naRaiz = (no: No) => dobra(p.curva, ALTURA, no);
   const Y0 = 0.05; // a coroa se inclina a partir do colo
   const [incX, incZ] = p.inclina ?? [0, 0];
@@ -68,7 +103,7 @@ export function molarSuperior(p: MolarSuperior): Dente {
   const cristaDe = (c: Cuspide): [V, V] => [[c.c[0], c.c[1] + c.r - 0.045, c.c[2]], [c.c[0] * 0.45, fundo, c.c[2] * 0.14]];
 
   /* ---------- forma externa ---------- */
-  const bloco = p.coroa.oval ? elipse([0, 0.34, 0], [p.coroa.b[0] + p.coroa.r, (p.coroa.b[1] + p.coroa.r) * 0.9, p.coroa.b[2] + p.coroa.r]) : caixa([0, 0.34, 0], p.coroa.b, p.coroa.r);
+  const bloco = p.coroa.oval ? elipse([0, 0.34, 0], [p.coroa.b[0] + p.coroa.r, (p.coroa.b[1] + p.coroa.r) * 0.9, p.coroa.b[2] + p.coroa.r]) : blocoMolar(p.coroa);
   const afunilado = p.coroa.funil ? funil(-(p.coroa.b[2] + p.coroa.r), 0.12, p.coroa.funil, bloco) : bloco;
   const contorno = p.coroa.romboide ? desliza(-p.coroa.romboide, afunilado) : afunilado;
   const macico = une(
@@ -77,7 +112,7 @@ export function molarSuperior(p: MolarSuperior): Dente {
     ...p.cuspides.map((c) => esfera(c.c, c.r)),
     ...(p.ponte ? [capsula(p.ponte.a, p.ponte.b, p.ponte.r)] : []),
   );
-  const escavado = cava(0.07, une(0.06, cava(0.09, macico, ...p.fossetas.map((f) => elipse(f.c, f.r))), ...p.cuspides.map((c) => capsula(...cristaDe(c), 0.04))), ...p.sulcos.flatMap((s) => (s.desce ? [capsula(s.a, s.b, s.r), desceFace(s)] : [capsula(s.a, s.b, s.r)])));
+  const escavado = cava(0.07, une(0.06, cava(0.09, macico, ...p.fossetas.map((f) => elipse(f.c, f.r))), ...p.cuspides.map((c) => capsula(...cristaDe(c), 0.04))), ...p.sulcos.flatMap((s) => (s.desce ? [...fenda(s), desceFace(s)] : [capsula(s.a, s.b, s.r)])));
   const coroa = p.tuberculo ? une(0.05, escavado, esfera(p.tuberculo.c, p.tuberculo.r)) : escavado;
   const macicas = une(p.uniao, ...p.raizes.flatMap((r) => [cone(r.a, r.b, r.r1, r.r2), ...(r.gemea ? [cone(r.gemea[0], r.gemea[1], r.r1, r.r2)] : [])]));
   const raizes = naRaiz(p.sulcosRaiz?.length ? cava(0.05, macicas, ...p.sulcosRaiz.map((s) => cone(...s))) : macicas);

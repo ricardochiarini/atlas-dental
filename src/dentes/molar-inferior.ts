@@ -7,10 +7,11 @@
    em revisão pelo autor. */
 import type { Dente, Estrutura, V } from '../atlas';
 import type { Modelo } from '../modelo';
-import { caixa, capsula, cava, cisalha, colo, cone, dobra, elipse, escala, esfera, une, type No } from '../no';
+import { ajustaCuspide, aprofunda, blocoMolar } from './molar-superior';
+import { capsula, cava, cisalha, colo, cone, dobra, elipse, escala, esfera, une, type No } from '../no';
 
 interface Cuspide { id: string; nome: string; texto: string; c: V; r: number; corno: [V, V, number, number]; cornoNome: string; cornoTexto: string }
-interface Sulco { id: string; nome: string; texto: string; a: V; b: V; r: number; desce?: boolean }
+interface Sulco { id: string; nome: string; texto: string; a: V; b: V; r: number; desce?: boolean; face?: V }
 interface Raiz { a: V; b: V; r1: number; r2: number }
 interface Canal { id: string; nome: string; texto: string; a: V; b: V; r1: number; r2: number; achata?: number }
 
@@ -42,10 +43,18 @@ const entre = (a: V, b: V, t: number): V => [a[0] + (b[0] - a[0]) * t, a[1] + (b
 const reta = (a: V, b: V, n: number): V[] => Array.from({ length: n }, (_, i) => entre(a, b, i / (n - 1)));
 const sinal = (v: number) => (v < 0 ? -1 : 1);
 
+/* o sulco que separa duas cúspides e desce para a face é aberto por cima: três cápsulas
+   empilhadas formam uma fenda, em vez de um túnel sob a união das cúspides */
+const sobe = (p: V, h: number): V => [p[0], p[1] + h, p[2]];
+const fenda = (s: { a: V; b: V; r: number }): No[] => [0, 0.1, 0.2].map((h) => capsula(sobe(s.a, h), sobe(s.b, h), s.r * (1 + h * 1.5)));
 /* um sulco que chega à face livre continua por ela, cada vez mais raso, até sumir no terço médio */
-const desceFace = (s: { b: V; r: number }): No => cone(s.b, [s.b[0], s.b[1] - 0.26, s.b[2] + Math.sign(s.b[2]) * 0.05], s.r, 0.004);
+const desceFace = (s: { b: V; r: number; face?: V }): No => { const p0 = s.face ?? s.b; return cone(p0, [p0[0], p0[1] - 0.3, p0[2] + Math.sign(p0[2]) * 0.035], s.r * 0.8, 0.004); };
 
 export function molarInferior(p: MolarInferior): Dente {
+  {
+    const hx = p.coroa.b[0] + p.coroa.r, hz = p.coroa.b[2] + p.coroa.r;
+    p = { ...p, cuspides: p.cuspides.map((c) => ajustaCuspide(c, hx, hz)), sulcos: p.sulcos.map((s) => aprofunda(s, hx, hz)), fossetaVestibular: p.fossetaVestibular && { ...p.fossetaVestibular, c: [p.fossetaVestibular.c[0], p.fossetaVestibular.c[1], hz + 0.018] }, fosseta: { ...p.fosseta, c: [p.fosseta.c[0], p.fosseta.c[1] - 0.05, p.fosseta.c[2]] } };
+  }
   const naRaiz = (no: No) => dobra(p.curva, ALTURA, no);
   const Y0 = 0.05; // a coroa se inclina a partir do colo
   const [incX, incZ] = p.inclina ?? [0, 0];
@@ -60,11 +69,11 @@ export function molarInferior(p: MolarInferior): Dente {
     0.07,
     une(
       0.06,
-      cava(0.1, une(0.12, colo(-0.05, 0.42, 0.8, caixa([0, 0.34, 0], p.coroa.b, p.coroa.r)), ...p.cuspides.map((c) => esfera(c.c, c.r))), elipse(p.fosseta.c, p.fosseta.r)),
+      cava(0.1, une(0.12, colo(-0.05, 0.42, 0.8, blocoMolar(p.coroa)), ...p.cuspides.map((c) => esfera(c.c, c.r))), elipse(p.fosseta.c, p.fosseta.r)),
       ...p.cuspides.map((c) => capsula(...cristaDe(c), 0.042)),
     ),
     ...(p.fossetaVestibular ? [esfera(p.fossetaVestibular.c, p.fossetaVestibular.r)] : []),
-    ...p.sulcos.flatMap((s) => (s.desce ? [capsula(s.a, s.b, s.r), desceFace(s)] : [capsula(s.a, s.b, s.r)])),
+    ...p.sulcos.flatMap((s) => (s.desce ? [...fenda(s), desceFace(s)] : [capsula(s.a, s.b, s.r)])),
   );
   const { mesial, distal } = p.raizes;
   const macicas = une(p.raizes.uniao, cone(mesial.a, mesial.b, mesial.r1, mesial.r2), cone(distal.a, distal.b, distal.r1, distal.r2));
