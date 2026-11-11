@@ -27,7 +27,7 @@ export interface Anterior {
   /** fosseta lingual (forame cego), acima do cíngulo */
   forameCego?: boolean;
   /** `triangular`: secção triangular arredondada, com a base para vestibular */
-  raiz: { fim: V; r1: number; r2: number; achata: number; triangular?: boolean };
+  raiz: { fim: V; r1: number; r2: number; achata: number; triangular?: boolean; /** sulcos longitudinais nas faces proximais */ sulcos?: boolean };
   curva: number;
   inclina?: [number, number];
   textos: Record<'face-v' | 'face-l' | 'incisal' | 'cingulo' | 'fossa' | 'raiz' | 'camara' | 'canal' | 'contato-m' | 'contato-d', string>;
@@ -90,7 +90,17 @@ export function anterior(p: Anterior): Dente {
     const rm = (p.raiz.r2 + (p.raiz.r1 - p.raiz.r2) * 0.56) * k;
     return une(0.04, cone(a, meioRaiz, p.raiz.r1 * k, rm), cone(meioRaiz, p.raiz.fim, rm, p.raiz.r2));
   };
-  const raiz = naRaiz(p.raiz.triangular ? une(0.1, escala([0.85, 1, 1.2], corpoRaiz(0.05, 0.9)), corpoRaiz(-0.07, 0.78)) : corpoRaiz(0, 1));
+  /* sulco longitudinal em cada face proximal, do terço cervical ao médio */
+  const sulcoRaiz = (s: number): No => {
+    const em = (t: number): V => {
+      const rm = p.raiz.r2 + (p.raiz.r1 - p.raiz.r2) * 0.56;
+      const r = t <= 0.6 ? p.raiz.r1 + (rm - p.raiz.r1) * (t / 0.6) : rm + (p.raiz.r2 - rm) * ((t - 0.6) / 0.4);
+      return [s * (r + 0.05), inicioRaiz[1] + (p.raiz.fim[1] - inicioRaiz[1]) * t, 0];
+    };
+    return capsula(em(0.14), em(0.78), 0.06);
+  };
+  const comSulcos = (no: No): No => (p.raiz.sulcos ? cava(0.05, no, sulcoRaiz(-1), sulcoRaiz(1)) : no);
+  const raiz = naRaiz(p.raiz.triangular ? une(0.1, escala([0.85, 1, 1.2], corpoRaiz(0.05, 0.9)), corpoRaiz(-0.07, 0.78)) : comSulcos(corpoRaiz(0, 1)));
 
   /* ---------- cavidade pulpar: câmara na coroa, cornos em direção à borda e um canal ---------- */
   const cam = p.canino ? { c: [0, 0.32 * T, E * 0.05] as V, r: [W * 0.4, 0.24 * T, E * 0.21] as V } : { c: [0, 0.3 * T, E * 0.04] as V, r: [W * 0.5, 0.2 * T, E * 0.17] as V };
@@ -171,6 +181,7 @@ export function anterior(p: Anterior): Dente {
 
       /* ---------- Raiz ---------- */
       { id: 'raiz', nome: 'Raiz', grupo: 'Raiz', texto: t.raiz, externas: emVolta(naAltura(0.5)) },
+      ...(p.raiz.sulcos ? [{ id: 'sulco-raiz', nome: 'Sulco longitudinal da raiz', grupo: 'Raiz', texto: 'Depressão ao longo de cada face proximal da raiz, que lhe dá uma secção em forma de ampulheta. É mais marcada na face distal.', externas: [[naAltura(0.4), [-1, 0, 0]], [naAltura(0.4), [1, 0, 0]]] } as Estrutura] : []),
       { id: 'terco-c', nome: 'Terço cervical da raiz', grupo: 'Raiz', texto: 'O terço da raiz mais próximo da coroa.', externas: emVolta(naAltura(0.16)) },
       { id: 'terco-m', nome: 'Terço médio da raiz', grupo: 'Raiz', texto: 'A porção intermediária da raiz.', externas: emVolta(naAltura(0.36)) },
       { id: 'terco-a', nome: 'Terço apical da raiz', grupo: 'Raiz', texto: 'O terço final, onde a raiz se afila e o canal se estreita até o forame.', externas: emVolta(naAltura(0.82)) },
@@ -221,7 +232,7 @@ export function anterior(p: Anterior): Dente {
     chao: superior ? T + 0.14 : base - 0.12,
     planos: [
       /* o corte clássico dos anteriores é o vestíbulo-lingual, pelo meio do dente */
-      { nome: superior ? 'Vestíbulo-palatino' : 'Vestíbulo-lingual', normal: [-1, 0, 0], fora: W + 0.12, fim: -(W + 0.05), padrao: 0, vista: [-Math.PI / 2 + 0.3, 0.1] },
+      { nome: superior ? 'Vestíbulo-palatino' : 'Vestíbulo-lingual', normal: [-1, 0, 0], fora: W + 0.12, fim: -(W + 0.05), padrao: -p.curva * 0.2, vista: [-Math.PI / 2 + 0.3, 0.1] }, // o plano acompanha o desvio distal da raiz, para passar pelo canal
       { nome: 'Mésio-distal', normal: [0, 0, 1], fora: E + 0.12, fim: -(E + 0.05), padrao: E * 0.1, vista: [0.26, 0.1] },
       { nome: 'Transversal', normal: [0, 1, 0], fora: T + 0.1, fim: base + 0.1, padrao: -0.15, vista: [0.25, 1.05] },
     ],

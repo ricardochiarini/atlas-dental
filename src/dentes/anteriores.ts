@@ -66,8 +66,8 @@ const C_S: Anterior = {
 /* ---------- 31: incisivo central inferior ---------- */
 const IC_I: Anterior = {
   fdi: 31, arco: 'inferior', canino: false,
-  T: 0.93, W: 0.26, E: 0.3, distal: 0.03,
-  raiz: { fim: [0, -1.18, 0], r1: 0.26, r2: 0.045, achata: 1.55 },
+  T: 0.93, W: 0.26, E: 0.3, distal: 0.03, fossa: 0.42,
+  raiz: { fim: [0, -1.18, 0], r1: 0.26, r2: 0.045, achata: 1.55, sulcos: true },
   curva: 0.03,
   textos: {
     'face-v': 'Voltada para o lábio. É estreita, alta e quase plana. É o menor dente da dentição permanente.',
@@ -86,8 +86,8 @@ const IC_I: Anterior = {
 /* ---------- 32: incisivo lateral inferior ---------- */
 const IL_I: Anterior = {
   fdi: 32, arco: 'inferior', canino: false,
-  T: 0.98, W: 0.29, E: 0.32, distal: 0.1,
-  raiz: { fim: [0, -1.33, 0], r1: 0.27, r2: 0.045, achata: 1.5 },
+  T: 0.98, W: 0.29, E: 0.32, distal: 0.1, fossa: 0.42,
+  raiz: { fim: [0, -1.33, 0], r1: 0.27, r2: 0.045, achata: 1.5, sulcos: true },
   curva: 0.06,
   textos: {
     'face-v': 'Voltada para o lábio. É um pouco maior que a do central e menos simétrica.',
