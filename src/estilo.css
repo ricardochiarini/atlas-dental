@@ -58,7 +58,7 @@ h1 em { display: block; margin-top: .06em; color: var(--ac); text-transform: non
 
 /* comandos em linha de texto: um rótulo em itálico e as opções em seguida */
 .linha { display: flex; align-items: baseline; gap: 14px; margin-top: 12px; }
-#arcada-painel { width: min(350px, 37vh); margin: 14px 0 0 -8px; }
+#arcada-painel { width: clamp(150px, calc((100vh - 555px) / 1.1), 350px); margin: 14px 0 0 -8px; }
 #arcada-painel svg { display: block; width: 100%; height: auto; }
 #arcada-painel .dente text { font-size: 11.5px; }
 #arcada-painel .legenda { font-size: 13px; }
@@ -160,6 +160,12 @@ h1 em { display: block; margin-top: .06em; color: var(--ac); text-transform: non
 
 #sem-webgl { position: fixed; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; text-align: center; background: var(--bg); font: 400 22px/1.3 var(--f-s); }
 #sem-webgl[hidden] { display: none; }
+
+/* em janelas baixas o odontograma grande não cabe com os comandos: fica a miniatura */
+@media (max-height: 690px) and (min-width: 861px) {
+  #arcada-painel { display: none; }
+  .arcada { display: flex; }
+}
 
 /* em janelas médias o rodapé quebraria em várias linhas e invadiria o índice */
 @media (max-width: 1180px) {

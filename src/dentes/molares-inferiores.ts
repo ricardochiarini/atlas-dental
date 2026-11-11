@@ -15,6 +15,7 @@ const M1: MolarInferior = {
     { id: 'cusp-dl', nome: 'Cúspide disto-lingual', c: [0.2, 0.61, -0.22], r: 0.17, corno: [[0.12, 0.2, -0.1], [0.19, 0.4, -0.19], 0.042, 0.014], texto: 'A segunda cúspide lingual, um pouco mais baixa que a mésio-lingual.', cornoNome: 'Corno pulpar disto-lingual', cornoTexto: 'Prolongamento da câmara em direção à cúspide disto-lingual.' },
   ],
   fosseta: { c: [0.02, 0.8, 0], r: [0.34, 0.15, 0.13] },
+  fossetaVestibular: { c: [-0.13, 0.4, 0.5], r: 0.04 },
   sulcos: [
     { id: 'sulco-md', nome: 'Sulco principal mésio-distal', a: [-0.36, 0.745, 0], b: [0.4, 0.705, 0], r: 0.04, texto: 'Sulco central que percorre a face oclusal de mesial a distal, separando as cúspides vestibulares das linguais.' },
     { id: 'sulco-mv', nome: 'Sulco mésio-vestibular', a: [-0.12, 0.735, 0], b: [-0.13, 0.62, 0.44], r: 0.034, desce: true, texto: 'Sai do sulco mésio-distal, separa as cúspides mésio-vestibular e médio-vestibular e desce pela face vestibular.' },

@@ -19,6 +19,8 @@ export interface MolarInferior {
   coroa: { b: V; r: number };
   cuspides: Cuspide[];
   fosseta: { c: V; r: V };
+  /** fosseta vestibular: depressão em que termina o sulco mésio-vestibular, na face vestibular */
+  fossetaVestibular?: { c: V; r: number };
   sulcos: Sulco[]; // o primeiro é sempre o principal mésio-distal
   raizes: { mesial: Raiz; distal: Raiz; uniao: number };
   curva: number;
@@ -61,6 +63,7 @@ export function molarInferior(p: MolarInferior): Dente {
       cava(0.1, une(0.12, colo(-0.05, 0.42, 0.8, caixa([0, 0.34, 0], p.coroa.b, p.coroa.r)), ...p.cuspides.map((c) => esfera(c.c, c.r))), elipse(p.fosseta.c, p.fosseta.r)),
       ...p.cuspides.map((c) => capsula(...cristaDe(c), 0.042)),
     ),
+    ...(p.fossetaVestibular ? [esfera(p.fossetaVestibular.c, p.fossetaVestibular.r)] : []),
     ...p.sulcos.flatMap((s) => (s.desce ? [capsula(s.a, s.b, s.r), desceFace(s)] : [capsula(s.a, s.b, s.r)])),
   );
   const { mesial, distal } = p.raizes;
@@ -143,6 +146,7 @@ export function molarInferior(p: MolarInferior): Dente {
         const externas: [V, V][] = s.desce ? [[meio, [0, 1, sz * 0.3]], [entre(s.a, s.b, 0.92), [0, 0.55, sz * 0.85]]] : [[meio, [0, 1, 0]], [entre(s.a, s.b, 0.72), [0, 1, 0]]];
         return { id: s.id, nome: s.nome, grupo: 'Sulcos e fossetas', texto: s.texto, externas };
       }),
+      ...(p.fossetaVestibular ? [{ id: 'fosseta-v', nome: 'Fosseta vestibular', grupo: 'Sulcos e fossetas', texto: 'Pequena depressão na face vestibular, onde termina o sulco mésio-vestibular. É um ponto frequente de cárie.', externas: [[[p.fossetaVestibular.c[0], p.fossetaVestibular.c[1], 0], [0, 0, 1]]] } as Estrutura] : []),
       { id: 'fosseta-c', nome: 'Fosseta central', grupo: 'Sulcos e fossetas', texto: 'Depressão no centro da face oclusal, no encontro do sulco mésio-distal com os sulcos que vêm das faces livres.', externas: [[[p.fosseta.c[0], 0.3, 0], [0, 1, 0]]] },
       { id: 'fosseta-m', nome: 'Fosseta mesial', grupo: 'Sulcos e fossetas', texto: 'Depressão triangular na extremidade mesial do sulco principal, junto à crista marginal mesial.', externas: [[[principal.a[0] + 0.03, 0.3, 0], [0.2, 1, 0]]] },
       { id: 'fosseta-d', nome: 'Fosseta distal', grupo: 'Sulcos e fossetas', texto: 'Depressão triangular na extremidade distal do sulco principal, junto à crista marginal distal.', externas: [[[principal.b[0] - 0.03, 0.3, 0], [-0.2, 1, 0]]] },

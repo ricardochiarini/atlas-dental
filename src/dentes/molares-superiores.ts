@@ -35,7 +35,8 @@ const M1: MolarSuperior = {
   furcas: [[[0, -0.12, 0.2], [0, -0.6, 0.8]], [[-0.16, -0.12, 0], [-0.8, -0.6, 0]], [[0.12, -0.12, 0], [0.8, -0.6, 0]]],
   camara: { c: [-0.02, 0.17, 0], r: [0.18, 0.1, 0.25] },
   canais: [
-    { id: 'canal-mv', nome: 'Canal mésio-vestibular', a: [-0.13, 0.11, 0.17], b: [-0.25, -1.245, 0.25], r1: 0.032, r2: 0.01, texto: 'Canal da raiz mésio-vestibular. Com frequência há um segundo canal nessa raiz, o MV2, que aqui não foi desenhado.' },
+    { id: 'canal-mv', nome: 'Canal mésio-vestibular', a: [-0.13, 0.11, 0.17], b: [-0.25, -1.245, 0.25], r1: 0.032, r2: 0.01, texto: 'Canal principal da raiz mésio-vestibular, também chamado MV1.' },
+    { id: 'canal-mv2', nome: 'Canal mésio-palatino (MV2)', a: [-0.14, 0.11, 0.06], b: [-0.214, -0.84, 0.226], r1: 0.02, r2: 0.01, confluente: true, texto: 'Segundo canal da raiz mésio-vestibular, por palatino do principal. É estreito, frequente no primeiro molar superior e difícil de localizar; aqui ele se une ao canal principal no terço apical, uma das configurações possíveis.' },
     { id: 'canal-dv', nome: 'Canal disto-vestibular', a: [0.12, 0.11, 0.17], b: [0.3, -1.145, 0.24], r1: 0.03, r2: 0.01, texto: 'Canal único e estreito da raiz disto-vestibular.' },
     { id: 'canal-p', nome: 'Canal palatino', a: [-0.12, 0.11, -0.13], b: [-0.22, -1.355, -0.5], r1: 0.046, r2: 0.011, texto: 'O canal mais amplo e mais reto do dente, na raiz palatina.' },
   ],
@@ -49,7 +50,7 @@ const M1: MolarSuperior = {
     tronco: 'Porção comum da raiz, entre a linha cervical e a trifurcação.',
     furca: 'Região em que o tronco radicular se divide em três raízes. O molar superior tem três entradas de furca: vestibular, mesial e distal.',
     camara: 'A porção coronária da cavidade pulpar. No molar superior é mais larga no sentido vestíbulo-palatino, acompanhando a coroa.',
-    emboc: 'A entrada de cada canal no assoalho da câmara. No 26 formam um triângulo: mésio-vestibular, disto-vestibular e palatina.',
+    emboc: 'A entrada de cada canal no assoalho da câmara. No 26 as três principais formam um triângulo: mésio-vestibular, disto-vestibular e palatina. A do MV2 fica na linha entre a mésio-vestibular e a palatina.',
   },
 };
 

@@ -26,6 +26,8 @@ export interface Anterior {
   fossa?: number;
   /** fosseta lingual (forame cego), acima do cíngulo */
   forameCego?: boolean;
+  /** mamelões: os três lobos ainda visíveis na borda incisal do dente recém-irrompido */
+  mamelos?: boolean;
   /** `triangular`: secção triangular arredondada, com a base para vestibular */
   raiz: { fim: V; r1: number; r2: number; achata: number; triangular?: boolean; /** sulcos longitudinais nas faces proximais */ sulcos?: boolean };
   curva: number;
@@ -70,7 +72,7 @@ export function anterior(p: Anterior): Dente {
     /* mais larga no terço incisal, onde ficam as áreas de contato, e estreitando para o colo */
     const corpo = afila(0, 0.85 * T, 0.62, elipse([0, 0.4 * T, 0], [W * 1.15, 0.8 * T, E]));
     /* borda incisal: corte reto no topo, com o ângulo distal mais arredondado que o mesial */
-    const aparada = cava(0.035, corpo, caixa([0, T + 0.5, 0], [2, 0.5, 2], 0), esfera([W + 0.33 - p.distal, T + 0.3, 0], 0.42), ...(p.mesial ? [esfera([-(W + 0.33 - p.mesial), T + 0.3, 0], 0.42)] : []));
+    const aparada = cava(0.035, corpo, caixa([0, T + 0.5, 0], [2, 0.5, 2], 0), esfera([W + 0.33 - p.distal, T + 0.3, 0], 0.42), ...(p.mesial ? [esfera([-(W + 0.33 - p.mesial), T + 0.3, 0], 0.42)] : []), ...(p.mamelos ? [-1, 1].map((s) => esfera([s * W * 0.3, T + 0.022, 0], 0.04)) : []));
     /* fossa lingual, entre as cristas marginais; abaixo dela fica o cíngulo */
     const escavada = cava(0.06, aparada, elipse([0, 0.62 * T, -E], [W * 0.72, 0.3 * T, E * (p.fossa ?? 0.62)]));
     const comCingulo = une(0.09, escavada, esfera([0, 0.2 * T, -E * 0.55], E * 0.55));
@@ -140,6 +142,7 @@ export function anterior(p: Anterior): Dente {
         ]
       : [
           { id: 'borda', nome: 'Borda incisal', grupo: 'Faces e contornos', texto: t.incisal, externas: [[[0, T - 0.2, 0], [0, 1, 0]], [[0, T - 0.12, 0], [0, 0.6, 0.8]], [[0, T - 0.12, 0], [0, 0.6, -0.8]]] },
+          ...(p.mamelos ? [{ id: 'mamelos', nome: 'Mamelões', grupo: 'Faces e contornos', texto: 'Três pequenas saliências arredondadas da borda incisal, uma para cada lobo de desenvolvimento vestibular. Existem no dente recém-irrompido e desaparecem com o desgaste.', externas: [[[-W * 0.6, T - 0.12, 0], [0, 0.6, 0.8]], [[W * 0.6, T - 0.12, 0], [0, 0.6, 0.8]]] } as Estrutura] : []),
           { id: 'angulo-m', nome: 'Ângulo mésio-incisal', grupo: 'Faces e contornos', texto: 'Encontro da borda incisal com a face mesial. É quase reto, mais agudo que o distal.', externas: [[[-W * 0.75, T * 0.86, 0], [-0.7, 0.7, 0.2]], [[-W * 0.75, T * 0.86, 0], [-0.7, 0.7, -0.2]]] },
           { id: 'angulo-d', nome: 'Ângulo disto-incisal', grupo: 'Faces e contornos', texto: 'Encontro da borda incisal com a face distal. É arredondado.', externas: [[[W * 0.72, T * 0.82, 0], [0.7, 0.7, 0.2]], [[W * 0.72, T * 0.82, 0], [0.7, 0.7, -0.2]]] },
         ];

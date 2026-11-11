@@ -13,7 +13,7 @@ interface Cuspide { id: string; nome: string; texto: string; c: V; r: number; co
 interface Sulco { id: string; nome: string; texto: string; a: V; b: V; r: number; desce?: boolean }
 interface Fosseta { id: string; nome: string; texto: string; c: V; r: V }
 interface Raiz { id: string; nome: string; texto: string; a: V; b: V; r1: number; r2: number; fora: V; /** segundo cone, só para a forma: dá secção oval a uma raiz única */ gemea?: [V, V] }
-interface Canal { id: string; nome: string; texto: string; a: V; b: V; r1: number; r2: number }
+interface Canal { id: string; nome: string; texto: string; a: V; b: V; r1: number; r2: number; /** termina em outro canal, sem forame próprio */ confluente?: boolean }
 
 export interface MolarSuperior {
   fdi: number;
@@ -179,8 +179,8 @@ export function molarSuperior(p: MolarSuperior): Dente {
       {
         id: 'forame', nome: 'Forame apical', grupo: 'Cavidade pulpar', folga: 0.05,
         texto: 'Abertura do canal radicular na superfície do ápice, por onde o feixe vásculo-nervoso entra no dente. Nem sempre coincide com o vértice anatômico da raiz.',
-        externas: p.canais.flatMap((c): [V, V][] => { const b = m.desdobra(c.b); return [[b, [0, -1, 0]], [b, [0, -0.75, 0.65]], [b, [0, -0.75, -0.65]]]; }),
-        internas: p.canais.map((c) => m.desdobra(entre(c.a, c.b, 0.995))),
+        externas: p.canais.filter((c) => !c.confluente).flatMap((c): [V, V][] => { const b = m.desdobra(c.b); return [[b, [0, -1, 0]], [b, [0, -0.75, 0.65]], [b, [0, -0.75, -0.65]]]; }),
+        internas: p.canais.filter((c) => !c.confluente).map((c) => m.desdobra(entre(c.a, c.b, 0.995))),
       },
     ];
     const guia = [p.cuspides[0], ...p.cuspides.filter((c) => c.c[2] < 0).slice(0, 1)];
