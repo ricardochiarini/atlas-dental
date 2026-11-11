@@ -4,7 +4,7 @@ Atlas de anatomia dental que roda no navegador: cada dente pode ser girado, aber
 
 **Não há modelo 3D.** Nenhuma malha, textura ou arquivo importado: cada dente é uma função matemática, avaliada em cada pixel por um shader.
 
-Dentes prontos: os doze molares. Inferiores **36, 37, 38** e superiores **26, 27, 28**, mais os espelhos do lado direito (**46, 47, 48** e **16, 17, 18**). Os dentes superiores aparecem de coroa para baixo. Os demais aparecem no odontograma como "em preparação".
+Dentes prontos: os 20 dentes posteriores. Molares (**16-18, 26-28, 36-38, 46-48**) e pré-molares (**14, 15, 24, 25, 34, 35, 44, 45**). O lado direito é o espelho do esquerdo, e os dentes superiores aparecem de coroa para baixo. Faltam incisivos e caninos.
 
 ## Como funciona
 

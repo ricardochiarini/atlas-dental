@@ -12,15 +12,17 @@ import { caixa, capsula, cava, colo, cone, dobra, elipse, esfera, une, type No }
 interface Cuspide { id: string; nome: string; texto: string; c: V; r: number; corno: [V, V, number, number]; cornoNome: string; cornoTexto: string }
 interface Sulco { id: string; nome: string; texto: string; a: V; b: V; r: number; desce?: boolean }
 interface Fosseta { id: string; nome: string; texto: string; c: V; r: V }
-interface Raiz { id: string; nome: string; texto: string; a: V; b: V; r1: number; r2: number; fora: V }
+interface Raiz { id: string; nome: string; texto: string; a: V; b: V; r1: number; r2: number; fora: V; /** segundo cone, só para a forma: dá secção oval a uma raiz única */ gemea?: [V, V] }
 interface Canal { id: string; nome: string; texto: string; a: V; b: V; r1: number; r2: number }
 
 export interface MolarSuperior {
   fdi: number;
+  /** o molde serve a todos os dentes posteriores; sem este campo o dente é superior */
+  arco?: 'superior' | 'inferior';
   coroa: { b: V; r: number };
   cuspides: Cuspide[];
   /** ponte de esmalte (crista oblíqua), da cúspide mésio-palatina à disto-vestibular */
-  ponte: { a: V; b: V; r: number } | null;
+  ponte: { a: V; b: V; r: number; nome?: string; texto?: string } | null;
   /** tubérculo de Carabelli, na face palatina da cúspide mésio-palatina */
   tuberculo: { c: V; r: number } | null;
   fossetas: Fosseta[];
@@ -35,6 +37,8 @@ export interface MolarSuperior {
   /** posição clássica dos cortes mésio-distal (z) e vestíbulo-palatino (x) */
   cortes: { md: number; vp: number };
   textos: Record<'face-o' | 'face-m' | 'face-d' | 'contato-m' | 'contato-d' | 'tronco' | 'furca' | 'camara' | 'emboc', string>;
+  /** troca a descrição de qualquer estrutura pelo id (os textos padrão foram escritos para molares) */
+  outrosTextos?: Record<string, string>;
 }
 
 const ALTURA = 1.3;
@@ -55,7 +59,9 @@ export function molarSuperior(p: MolarSuperior): Dente {
   );
   const escavado = cava(0.07, cava(0.09, macico, ...p.fossetas.map((f) => elipse(f.c, f.r))), ...p.sulcos.map((s) => capsula(s.a, s.b, s.r)));
   const coroa = p.tuberculo ? une(0.05, escavado, esfera(p.tuberculo.c, p.tuberculo.r)) : escavado;
-  const raizes = naRaiz(une(p.uniao, ...p.raizes.map((r) => cone(r.a, r.b, r.r1, r.r2))));
+  const raizes = naRaiz(une(p.uniao, ...p.raizes.flatMap((r) => [cone(r.a, r.b, r.r1, r.r2), ...(r.gemea ? [cone(r.gemea[0], r.gemea[1], r.r1, r.r2)] : [])])));
+  const superior = (p.arco ?? 'superior') === 'superior';
+  const lingual = superior ? 'palatina' : 'lingual';
 
   /* ---------- cavidade pulpar ---------- */
   const polpa = une(0.05, elipse(p.camara.c, p.camara.r), ...p.cuspides.map((c) => cone(...c.corno)), ...p.canais.map((c) => naRaiz(cone(c.a, c.b, c.r1, c.r2))));
@@ -91,15 +97,15 @@ export function molarSuperior(p: MolarSuperior): Dente {
     const emVolta = (c: V, fora: V): [V, V][] => [[c, fora], [c, [fora[2], 0, fora[0]]], [c, [-fora[2], 0, -fora[0]]]];
     const primeira = p.raizes[0], ultima = p.raizes[p.raizes.length - 1];
 
-    return [
+    const lista: Estrutura[] = [
       /* ---------- Faces e contornos ---------- */
       { id: 'face-v', nome: 'Face vestibular', grupo: 'Faces e contornos', texto: 'Voltada para a bochecha. É convexa, com a maior convexidade no terço cervical, e é marcada pelo sulco vestibular.', externas: [[[0.12, 0.36, 0], [0, 0, 1]]] },
-      { id: 'face-l', nome: 'Face palatina', grupo: 'Faces e contornos', texto: 'Voltada para o palato. É a mais convexa das faces livres e mais larga que a vestibular no primeiro molar.', externas: [[[0.1, 0.38, 0], [0, 0, -1]]] },
+      { id: 'face-l', nome: `Face ${lingual}`, grupo: 'Faces e contornos', texto: superior ? 'Voltada para o palato. É a mais convexa das faces livres e mais larga que a vestibular no primeiro molar.' : 'Voltada para a língua.', externas: [[[0.1, 0.38, 0], [0, 0, -1]]] },
       { id: 'face-m', nome: 'Face mesial', grupo: 'Faces e contornos', texto: t['face-m'], externas: [[[0, 0.3, 0], [-1, 0, 0]]] },
       { id: 'face-d', nome: 'Face distal', grupo: 'Faces e contornos', texto: t['face-d'], externas: [[[0, 0.3, 0], [1, 0, 0]]] },
       { id: 'face-o', nome: 'Face oclusal', grupo: 'Faces e contornos', texto: t['face-o'], externas: [[[-largura * 0.42, 0.3, 0.02], [0, 1, 0]]] },
       { id: 'bossa-v', nome: 'Bossa vestibular', grupo: 'Faces e contornos', texto: 'Maior convexidade da face vestibular, no terço cervical.', externas: [[[-0.05, 0.2, 0], [0, -0.15, 1]]] },
-      { id: 'bossa-l', nome: 'Bossa palatina', grupo: 'Faces e contornos', texto: 'Maior convexidade da face palatina, no terço médio da coroa.', externas: [[[0.1, 0.4, 0], [0, 0.1, -1]]] },
+      { id: 'bossa-l', nome: `Bossa ${lingual}`, grupo: 'Faces e contornos', texto: `Maior convexidade da face ${lingual}, no terço médio da coroa.`, externas: [[[0.1, 0.4, 0], [0, 0.1, -1]]] },
       { id: 'contato-m', nome: 'Área de contato mesial', grupo: 'Faces e contornos', texto: t['contato-m'], externas: [[[0, 0.47, 0.08], [-1, 0.1, 0.1]]] },
       { id: 'contato-d', nome: 'Área de contato distal', grupo: 'Faces e contornos', texto: t['contato-d'], externas: [[[0, 0.42, 0.04], [1, 0.1, 0]]] },
       {
@@ -124,11 +130,11 @@ export function molarSuperior(p: MolarSuperior): Dente {
       ...p.fossetas.map((f): Estrutura => ({ id: f.id, nome: f.nome, grupo: 'Sulcos e fossetas', texto: f.texto, externas: [[[f.c[0], 0.3, f.c[2]], [0, 1, 0]]] })),
 
       /* ---------- Cristas e vertentes ---------- */
-      ...(p.ponte ? [{ id: 'ponte', nome: 'Ponte de esmalte', grupo: 'Cristas e vertentes', texto: 'Crista oblíqua que une a cúspide mésio-palatina à disto-vestibular, separando a fosseta central da distal. É a marca do molar superior.', externas: [[entre(p.ponte.a, p.ponte.b, 0.5), [0, 1, 0]], [entre(p.ponte.a, p.ponte.b, 0.3), [0, 1, 0]]] } as Estrutura] : []),
+      ...(p.ponte ? [{ id: 'ponte', nome: p.ponte.nome ?? 'Ponte de esmalte', grupo: 'Cristas e vertentes', texto: p.ponte.texto ?? 'Crista oblíqua que une a cúspide mésio-palatina à disto-vestibular, separando a fosseta central da distal. É a marca do molar superior.', externas: [[entre(p.ponte.a, p.ponte.b, 0.5), [0, 1, 0]], [entre(p.ponte.a, p.ponte.b, 0.3), [0, 1, 0]]] } as Estrutura] : []),
       { id: 'crista-m', nome: 'Crista marginal mesial', grupo: 'Cristas e vertentes', texto: 'Elevação de esmalte que fecha a face oclusal por mesial, unindo a cúspide mésio-vestibular à mésio-palatina.', externas: [[[-(largura - 0.08), principal.a[1] - 0.04, 0.02], [-0.45, 1, 0]]] },
       { id: 'crista-d', nome: 'Crista marginal distal', grupo: 'Cristas e vertentes', texto: 'Fecha a face oclusal por distal. É mais curta que a mesial.', externas: [[[largura - 0.06, principal.a[1] - 0.09, 0], [0.45, 1, 0]]] },
       { id: 'vert-t', nome: 'Vertente triturante', grupo: 'Cristas e vertentes', texto: 'Vertente interna da cúspide, voltada para o centro da face oclusal.', externas: p.cuspides.slice(0, 1).concat(p.cuspides.filter((c) => c.c[2] < 0).slice(0, 1)).map((c): [V, V] => [soma(c.c, [0.04, -0.3, -sinal(c.c[2]) * 0.12]), [0.3, 0.9, -sinal(c.c[2]) * 0.4]]) },
-      { id: 'vert-l', nome: 'Vertente lisa', grupo: 'Cristas e vertentes', texto: 'Vertente externa da cúspide, voltada para a face livre (vestibular ou palatina).', externas: p.cuspides.slice(0, 1).concat(p.cuspides.filter((c) => c.c[2] < 0).slice(0, 1)).map((c): [V, V] => [soma(c.c, [0, 0.02, 0]), [-0.1, 0.55, sinal(c.c[2]) * 0.85]]) },
+      { id: 'vert-l', nome: 'Vertente lisa', grupo: 'Cristas e vertentes', texto: `Vertente externa da cúspide, voltada para a face livre (vestibular ou ${lingual}).`, externas: p.cuspides.slice(0, 1).concat(p.cuspides.filter((c) => c.c[2] < 0).slice(0, 1)).map((c): [V, V] => [soma(c.c, [0, 0.02, 0]), [-0.1, 0.55, sinal(c.c[2]) * 0.85]]) },
 
       /* ---------- Raiz ---------- */
       { id: 'tronco', nome: 'Tronco radicular', grupo: 'Raiz', texto: t.tronco, externas: [[[0.02, -0.03, 0], [0, 0, 1]], [[0.02, -0.03, 0], [0, 0, -1]], [[0, -0.03, 0], [-1, 0, 0]]] },
@@ -159,11 +165,12 @@ export function molarSuperior(p: MolarSuperior): Dente {
         internas: p.canais.map((c) => m.desdobra(entre(c.a, c.b, 0.995))),
       },
     ];
+    return lista.map((e) => (p.outrosTextos?.[e.id] ? { ...e, texto: p.outrosTextos[e.id] } : e));
   }
 
   return {
     fdi: p.fdi,
-    arco: 'superior',
+    arco: superior ? 'superior' : 'inferior',
     lado: 1,
     forma: une(0.13, coroa, raizes),
     polpa,
@@ -171,12 +178,12 @@ export function molarSuperior(p: MolarSuperior): Dente {
     esmalte: { base: 0.085, extra: 0.05, y0: 0.35, y1: 0.7, faixa: 0.22 },
     cemento: 0.022,
     curva: { forca: p.curva, altura: ALTURA },
-    centro: [0, -0.26, -0.05],
+    centro: [0, -0.26, superior ? -0.05 : 0],
     raio: 1.4,
-    chao: 1.0, // nos superiores a sombra cai do lado da coroa, que aparece embaixo
+    chao: superior ? 1.0 : -1.46, // nos superiores a sombra cai do lado da coroa, que aparece embaixo
     planos: [
       { nome: 'Mésio-distal', normal: [0, 0, 1], fora: 0.66, fim: -0.62, padrao: p.cortes.md, vista: [0.26, 0.12] },
-      { nome: 'Vestíbulo-palatino', normal: [-1, 0, 0], fora: 0.62, fim: -0.4, padrao: p.cortes.vp, vista: [-Math.PI / 2 + 0.3, 0.12] },
+      { nome: superior ? 'Vestíbulo-palatino' : 'Vestíbulo-lingual', normal: [-1, 0, 0], fora: 0.62, fim: -0.4, padrao: p.cortes.vp, vista: [-Math.PI / 2 + 0.3, 0.12] },
       { nome: 'Transversal', normal: [0, 1, 0], fora: 0.92, fim: -1.25, padrao: -0.05, vista: [0.25, 1.05] },
     ],
     estruturas,
