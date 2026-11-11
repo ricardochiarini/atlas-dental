@@ -72,6 +72,11 @@ const ALVO = new THREE.Vector3();
 const olhar = { guinada: 0.45, inclinacao: 0.12, velG: 0, velI: 0 };
 let destino: { guinada: number; inclinacao: number } | null = null; // para onde a câmera está indo sozinha
 let distancia = 6.4;
+const FOCO = 3;
+let zoom = 1; // 1 = dente inteiro; a roda do mouse e a pinça aproximam até 4 vezes
+const pan = new THREE.Vector3(); // deslocamento do alvo, para aproximar no ponto sob o cursor
+let nitido = false; // o quadro parado já foi redesenhado em resolução maior?
+let parado = 0; // instante do último quadro desenhado
 let plano!: Plano;
 let corte = 0; // 0 = plano fora do dente; 1 = plano no fim do percurso
 let corteAlvo = 0;
@@ -136,12 +141,37 @@ function mede() {
   /* no desktop o dente fica à direita do texto; no celular, centralizado, mais longe e mais alto */
   uniformes.uDesloc.value = estreito ? 0 : Math.min(0.42, (largura / altura) * 0.24);
   distancia = estreito ? Math.max(7.4, 6.0 / Math.min(1, (largura / altura) * 1.45)) : 6.4;
-  if (def) ALVO.set(def.centro[0], def.centro[1] - (estreito ? 0.36 * uniformes.uInverte.value : 0), def.centro[2]);
-  const dpr = Math.min(devicePixelRatio || 1, 1.5) * escala;
+  if (def) ALVO.set(def.centro[0], def.centro[1] - (estreito ? 0.36 * uniformes.uInverte.value : 0), def.centro[2]).add(pan);
+  resolucao(false);
+  $('#linhas').setAttribute('viewBox', `0 0 ${largura} ${altura}`);
+  sujo = true;
+}
+
+/* Resolução interna. Em movimento, a que o aparelho acompanha; com o dente parado, um
+   quadro único em resolução maior, que o navegador reduz e deixa as bordas lisas. */
+function resolucao(alta: boolean) {
+  const base = devicePixelRatio || 1;
+  const dpr = alta ? Math.min(Math.max(base, 1) * 2, 3) : Math.min(base, 1.5) * escala;
   renderer.setPixelRatio(dpr);
   renderer.setSize(largura, altura, false);
   uniformes.uRes.value.set(largura * dpr, altura * dpr);
-  $('#linhas').setAttribute('viewBox', `0 0 ${largura} ${altura}`);
+}
+
+/* Aproxima ou afasta mantendo fixo o ponto do dente que está sob (x, y) na tela. */
+function aplicaZoom(novo: number, x: number, y: number) {
+  novo = THREE.MathUtils.clamp(novo, 1, 4);
+  if (novo === zoom) return;
+  const ux = (2 * x - largura) / altura - uniformes.uDesloc.value;
+  const uy = ((altura - 2 * y) / altura) * uniformes.uInverte.value;
+  const k = distancia * (1 / (FOCO * zoom) - 1 / (FOCO * novo));
+  pan.addScaledVector(direita, ux * k).addScaledVector(cima, uy * k);
+  /* ao afastar, o dente volta ao centro aos poucos */
+  if (novo < zoom) pan.multiplyScalar((novo - 1) / Math.max(zoom - 1, 1e-4));
+  zoom = novo;
+  uniformes.uFoco.value = FOCO * zoom;
+  document.body.classList.toggle('perto', zoom > 1.15);
+  ALVO.set(def.centro[0], def.centro[1] - (estreito ? 0.36 * uniformes.uInverte.value : 0), def.centro[2]).add(pan);
+  defineGiro(false);
   sujo = true;
 }
 
@@ -278,7 +308,8 @@ function posicionaRotulos() {
 
   /* raio do dente na tela, para afastar as colunas dele */
   const pxPorUnidade = (uniformes.uFoco.value / distancia) * (altura / 2);
-  const coluna = 0.66 * pxPorUnidade + 46;
+  /* ao aproximar, as colunas param na borda da tela em vez de sair dela */
+  const coluna = Math.min(0.66 * pxPorUnidade + 46, largura - centro.x - 250);
   /* a coluna da esquerda só existe se os nomes não invadirem o painel de texto */
   legenda.style.setProperty('--cx', `${centro.x.toFixed(0)}px`);
   const cabeEsquerda = estreito || centro.x - coluna - 240 > painel.getBoundingClientRect().right;
@@ -313,6 +344,7 @@ function posicionaRotulos() {
     if (!ponto) continue;
 
     const s = projeta(ponto);
+    if (s.x < 0 || s.x > largura || s.y < 40 || s.y > altura - 40) { r.botao.classList.remove('on'); r.linha.classList.remove('on', 'sel'); r.bola.classList.remove('on', 'sel'); continue; } // fora da tela ao aproximar
     (s.x < centro.x && cabeEsquerda ? esq : dir).push({ r, x: s.x, y: s.y, alvoY: s.y });
   }
 
@@ -467,6 +499,10 @@ function abreDente(fdi: number) {
   corte = corteAlvo = 0;
   selecionada = null;
   destino = null;
+  zoom = 1;
+  pan.set(0, 0, 0);
+  uniformes.uFoco.value = FOCO;
+  document.body.classList.remove('perto');
   olhar.guinada = 0.45 * def.lado;
   olhar.inclinacao = 0.12;
 
@@ -488,7 +524,20 @@ function abreDente(fdi: number) {
 /* ---------- ponteiro e teclado ---------- */
 let ultimoX = 0;
 let ultimoY = 0;
+/* roda do mouse (e pinça no trackpad, que chega como roda com ctrl) */
+tela.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  aplicaZoom(zoom * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0016)), e.clientX, e.clientY);
+}, { passive: false });
+
+/* pinça com dois dedos */
+const dedos = new Map<number, { x: number; y: number }>();
+let pinca = 0;
+const entreDedos = () => { const [a, b] = [...dedos.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+
 tela.addEventListener('pointerdown', (e) => {
+  dedos.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (dedos.size === 2) pinca = entreDedos();
   arrastando = true;
   destino = null;
   ultimoX = e.clientX;
@@ -501,15 +550,30 @@ tela.addEventListener('pointermove', (e) => {
   /* a luz acompanha o ponteiro de leve, mesmo sem arrastar */
   uniformes.uLuz.value.set(-0.5 + (e.clientX / largura - 0.5) * 0.9, (0.8 - (e.clientY / altura - 0.5) * 0.5) * uniformes.uInverte.value, 0.7);
   sujo = true;
+  if (dedos.has(e.pointerId)) dedos.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (dedos.size === 2) {
+    const d = entreDedos();
+    const [a, b] = [...dedos.values()];
+    if (pinca > 0) aplicaZoom(zoom * (d / pinca), (a.x + b.x) / 2, (a.y + b.y) / 2);
+    pinca = d;
+    return;
+  }
   if (!arrastando) return;
-  olhar.velG = -(e.clientX - ultimoX) * 0.006;
-  olhar.velI = (e.clientY - ultimoY) * 0.004 * uniformes.uInverte.value;
+  /* aproximado, o mesmo gesto gira menos, para o dente não fugir da mão */
+  olhar.velG = (-(e.clientX - ultimoX) * 0.006) / Math.sqrt(zoom);
+  olhar.velI = ((e.clientY - ultimoY) * 0.004 * uniformes.uInverte.value) / Math.sqrt(zoom);
   ultimoX = e.clientX;
   ultimoY = e.clientY;
 });
-const solta = () => (arrastando = false);
+const solta = (e: PointerEvent) => {
+  dedos.delete(e.pointerId);
+  pinca = 0;
+  arrastando = dedos.size > 0;
+  if (arrastando) { const [a] = [...dedos.values()]; ultimoX = a.x; ultimoY = a.y; }
+};
 tela.addEventListener('pointerup', solta);
 tela.addEventListener('pointercancel', solta);
+tela.addEventListener('dblclick', (e) => aplicaZoom(zoom > 1.05 ? 1 : 2.2, e.clientX, e.clientY));
 
 tela.addEventListener('keydown', (e) => {
   const passo = 0.12;
@@ -517,6 +581,8 @@ tela.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowRight') olhar.guinada += passo;
   else if (e.key === 'ArrowUp') olhar.inclinacao += passo * 0.6;
   else if (e.key === 'ArrowDown') olhar.inclinacao -= passo * 0.6;
+  else if (e.key === '+' || e.key === '=') aplicaZoom(zoom * 1.25, projeta([ALVO.x, ALVO.y, ALVO.z]).x, altura / 2);
+  else if (e.key === '-') aplicaZoom(zoom / 1.25, projeta([ALVO.x, ALVO.y, ALVO.z]).x, altura / 2);
   else return;
   e.preventDefault();
   destino = null;
@@ -574,8 +640,18 @@ function quadro(agora: number) {
     sujo = true;
   }
 
-  if (!sujo) return;
+  if (!sujo) {
+    /* dente parado há um instante: um quadro em resolução maior */
+    if (!nitido && agora - parado > 180) {
+      nitido = true;
+      resolucao(true);
+      renderer.render(cena, camera);
+    }
+    return;
+  }
   sujo = false;
+  parado = agora;
+  if (nitido) { nitido = false; resolucao(false); }
 
   uniformes.uCorte.value = posicao(plano, corte);
   atualizaCamera();

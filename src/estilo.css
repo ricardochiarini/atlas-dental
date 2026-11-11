@@ -46,6 +46,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .folha { position: fixed; left: var(--margem); top: 64px; bottom: 54px; width: min(420px, 34vw); display: flex; flex-direction: column; align-items: flex-start; pointer-events: none; }
 .folha > * { pointer-events: auto; flex: none; }
 
+/* com o dente aproximado ele passa por trás do painel: um fundo mantém o texto legível */
+@media (min-width: 861px) {
+  .folha::before { content: ""; position: absolute; z-index: -1; inset: -64px -56px -54px calc(-1 * var(--margem)); background: linear-gradient(90deg, var(--bg) 84%, transparent); opacity: 0; transition: opacity .25s var(--ease); pointer-events: none; }
+  .perto .folha::before { opacity: 1; }
+}
+
 /* o número FDI identifica a prancha; o nome vem logo abaixo, em duas vozes */
 h1 { margin: 0; font: 400 clamp(26px, 2.5vw, 36px)/1 var(--f-s); text-transform: uppercase; letter-spacing: -.005em; text-wrap: balance; }
 #dente-num { display: block; margin: 0 0 .1em -.04em; font-size: clamp(76px, 8.6vw, 96px); line-height: .8; letter-spacing: -.03em; }

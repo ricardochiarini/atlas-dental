@@ -49,7 +49,8 @@ vec3 emLinear(vec3 c) { return pow(c, vec3(2.2)); }
 vec3 srgb(vec3 c) { return pow(clamp(c, 0.0, 1.0), vec3(1.0 / 2.2)); }
 
 vec3 normalDoDente(vec3 p) {
-  const vec2 e = vec2(0.0015, 0.0);
+  // o passo da normal acompanha o tamanho do pixel: de perto, mais fino e mais nítido
+  vec2 e = vec2(clamp(3.0 * distance(p, uOlho) / (uRes.y * uFoco), 0.0004, 0.0015), 0.0);
   return normalize(vec3(dente(p + e.xyy) - dente(p - e.xyy), dente(p + e.yxy) - dente(p - e.yxy), dente(p + e.yyx) - dente(p - e.yyx)));
 }
 
@@ -153,7 +154,7 @@ void main() {
     for (int i = 0; i < 110; i++) {
       float d = cena(ro + rd * t);
       if (d / t < menor) { menor = d / t; tMenor = t; }
-      if (d < 0.0006 * t) { bateu = true; break; }
+      if (d < min(0.0006, pixel * 0.4) * t) { bateu = true; break; }
       t += d * 0.82;
       if (t > fim) break;
     }
