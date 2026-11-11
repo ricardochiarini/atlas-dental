@@ -15,6 +15,12 @@ uniform vec3 uFundo, uEsmalte, uDentina, uPolpa, uCemento, uTinta;
 uniform vec3 uCentro;    // centro e raio da esfera que envolve o dente
 uniform float uRaio;
 uniform float uChao;     // altura do chão, onde cai a sombra
+uniform int uRealce;      // 0 nada, 1 terços, 2 cúspides: regiões pintadas na superfície
+uniform float uTopo, uApice;
+uniform vec3 uCusp[5];
+uniform int uNCusp;
+uniform vec3 uPalT[6];    // terços: coroa (oclusal, médio, cervical) e raiz (cervical, médio, apical)
+uniform vec3 uPalC[5];    // uma cor por cúspide
 uniform int uZero;        // sempre 0. Começar os laços nele impede o compilador de desenrolá-los e de copiar a
                           // função do dente em cada chamada; sem isso a compilação leva dezenas de segundos
 uniform float uInverte;  // -1 nos dentes superiores: a imagem é espelhada na vertical, com a coroa para baixo
@@ -127,6 +133,29 @@ vec3 tinge(vec3 p, vec3 rd, float px) {
     float c = jac(p);
     float naCoroa = smoothstep(c - 0.03, c + 0.06, p.y);
     vec3 base = mix(emLinear(uCemento), emLinear(uEsmalte), naCoroa);
+
+    // ---- realce: terços ou cúspides pintados sobre o dente, com um traço na divisa ----
+    if (uRealce == 1) {
+      bool coroa = p.y > c;
+      float alt = coroa ? max(uTopo - c, 0.01) : max(c - uApice, 0.01);
+      float t = clamp((coroa ? p.y - c : c - p.y) / alt, 0.0, 0.999) * 3.0;
+      int k = int(floor(t));
+      vec3 cr = coroa ? uPalT[2 - k] : uPalT[3 + k];
+      float divisa = min(fract(t), 1.0 - fract(t)) * alt / 3.0;
+      base = mix(base, emLinear(cr), 0.62);
+      base *= 1.0 - 0.5 * smoothstep(0.010 + px, 0.003, divisa);
+    } else if (uRealce == 2 && uNCusp > 0) {
+      float perto1 = 1e3, perto2 = 1e3;
+      int qual = 0;
+      for (int i = uZero; i < uNCusp; i++) {
+        float d = distance(p, uCusp[i]);
+        if (d < perto1) { perto2 = perto1; perto1 = d; qual = i; } else if (d < perto2) perto2 = d;
+      }
+      // a cúspide é o alto da coroa: a cor some em direção ao terço cervical
+      float alto = smoothstep(c + 0.30 * (uTopo - c), c + 0.52 * (uTopo - c), p.y);
+      base = mix(base, emLinear(uPalC[qual]), 0.62 * alto);
+      if (uNCusp > 1) base *= 1.0 - 0.5 * alto * smoothstep(0.010 + px, 0.003, (perto2 - perto1) * 0.5);
+    }
 
     // ---- textura: só aparece quando o pixel é menor que o detalhe, para não cintilar de longe ----
     float perto = smoothstep(0.0045, 0.0012, px);
