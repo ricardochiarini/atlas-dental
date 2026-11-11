@@ -66,6 +66,10 @@ h1 em { display: block; margin-top: .06em; color: var(--ac); text-transform: non
 #arcada-painel .pronto text { fill: var(--fg); opacity: 1; }
 #arcada-painel .pronto[aria-current="true"] text { fill: var(--ac); font-weight: 600; }
 #arcada-painel + .linha { margin-top: 10px; }
+/* com o índice aberto a lista precisa da altura: o odontograma recolhe para a miniatura */
+.folha:has(#indice[open]) #arcada-painel { display: none; }
+.folha:has(#indice[open]) .arcada { display: flex; }
+.folha:has(#indice[open]) .arcada ~ .linha:first-of-type { margin-top: 26px; }
 .linha > span, .linha > label { flex: none; width: 62px; font: italic 400 19px/1 var(--f-s); color: var(--mut); }
 #vistas, #planos { display: flex; flex-wrap: wrap; gap: 0 14px; }
 .opcao { padding: 5px 0; border: 0; background: none; color: var(--mut); text-decoration: underline transparent 1px; text-underline-offset: 6px; transition: color .15s var(--ease), text-decoration-color .15s var(--ease); }

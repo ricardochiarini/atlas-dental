@@ -67,7 +67,7 @@ export function molarSuperior(p: MolarSuperior): Dente {
   /* ---------- forma externa ---------- */
   const macico = une(
     0.12,
-    colo(-0.05, 0.42, 0.8, p.coroa.oval ? elipse([0, 0.34, 0], [p.coroa.b[0] + p.coroa.r, (p.coroa.b[1] + p.coroa.r) * 1.04, p.coroa.b[2] + p.coroa.r]) : caixa([0, 0.34, 0], p.coroa.b, p.coroa.r)),
+    colo(-0.05, 0.42, 0.8, p.coroa.oval ? elipse([0, 0.34, 0], [p.coroa.b[0] + p.coroa.r, (p.coroa.b[1] + p.coroa.r) * 0.9, p.coroa.b[2] + p.coroa.r]) : caixa([0, 0.34, 0], p.coroa.b, p.coroa.r)),
     ...p.cuspides.map((c) => esfera(c.c, c.r)),
     ...(p.ponte ? [capsula(p.ponte.a, p.ponte.b, p.ponte.r)] : []),
   );

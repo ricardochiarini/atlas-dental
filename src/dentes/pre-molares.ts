@@ -25,12 +25,12 @@ const PM1S: MolarSuperior = {
   ponte: null,
   tuberculo: null,
   fossetas: [
-    { id: 'fosseta-m', nome: 'Fosseta mesial', c: [-0.21, 0.8, 0], r: [0.07, 0.12, 0.1], texto: 'Depressão triangular na extremidade mesial do sulco principal.' },
-    { id: 'fosseta-d', nome: 'Fosseta distal', c: [0.21, 0.8, 0], r: [0.07, 0.12, 0.1], texto: 'Depressão triangular na extremidade distal do sulco principal.' },
+    { id: 'fosseta-m', nome: 'Fosseta mesial', c: [-0.21, 0.755, 0], r: [0.07, 0.12, 0.1], texto: 'Depressão triangular na extremidade mesial do sulco principal.' },
+    { id: 'fosseta-d', nome: 'Fosseta distal', c: [0.21, 0.755, 0], r: [0.07, 0.12, 0.1], texto: 'Depressão triangular na extremidade distal do sulco principal.' },
   ],
   sulcos: [
-    { id: 'sulco-md', nome: 'Sulco principal mésio-distal', a: [-0.24, 0.745, 0], b: [0.24, 0.745, 0], r: 0.034, texto: 'Sulco central, longo e retilíneo, que separa a cúspide vestibular da palatina.' },
-    { id: 'sulco-mm', nome: 'Sulco marginal mesial', a: [-0.24, 0.745, 0], b: [-0.4, 0.62, -0.03], r: 0.022, texto: 'Prolongamento do sulco principal que cruza a crista marginal mesial e chega à face mesial. É característico do primeiro pré-molar superior.' },
+    { id: 'sulco-md', nome: 'Sulco principal mésio-distal', a: [-0.24, 0.7, 0], b: [0.24, 0.7, 0], r: 0.042, texto: 'Sulco central, longo e retilíneo, que separa a cúspide vestibular da palatina.' },
+    { id: 'sulco-mm', nome: 'Sulco marginal mesial', a: [-0.24, 0.7, 0], b: [-0.4, 0.62, -0.03], r: 0.022, texto: 'Prolongamento do sulco principal que cruza a crista marginal mesial e chega à face mesial. É característico do primeiro pré-molar superior.' },
   ],
   raizes: [
     { id: 'raiz-v', nome: 'Raiz vestibular', a: [0, 0.1, 0.13], b: [0, -1.25, 0.23], r1: 0.17, r2: 0.045, fora: [0, 0, 1], texto: 'Uma das duas raízes do primeiro pré-molar superior. As duas se separam em geral no terço médio.' },
@@ -74,10 +74,10 @@ const PM2S: MolarSuperior = {
   ponte: null,
   tuberculo: null,
   fossetas: [
-    { id: 'fosseta-m', nome: 'Fosseta mesial', c: [-0.16, 0.79, 0], r: [0.07, 0.12, 0.1], texto: 'Depressão na extremidade mesial do sulco principal.' },
-    { id: 'fosseta-d', nome: 'Fosseta distal', c: [0.16, 0.79, 0], r: [0.07, 0.12, 0.1], texto: 'Depressão na extremidade distal do sulco principal.' },
+    { id: 'fosseta-m', nome: 'Fosseta mesial', c: [-0.16, 0.75, 0], r: [0.07, 0.12, 0.1], texto: 'Depressão na extremidade mesial do sulco principal.' },
+    { id: 'fosseta-d', nome: 'Fosseta distal', c: [0.16, 0.75, 0], r: [0.07, 0.12, 0.1], texto: 'Depressão na extremidade distal do sulco principal.' },
   ],
-  sulcos: [{ id: 'sulco-md', nome: 'Sulco principal mésio-distal', a: [-0.18, 0.74, 0], b: [0.18, 0.74, 0], r: 0.034, texto: 'Sulco central, mais curto que no primeiro pré-molar e acompanhado de sulcos secundários.' }],
+  sulcos: [{ id: 'sulco-md', nome: 'Sulco principal mésio-distal', a: [-0.18, 0.7, 0], b: [0.18, 0.7, 0], r: 0.04, texto: 'Sulco central, mais curto que no primeiro pré-molar e acompanhado de sulcos secundários.' }],
   raizes: [
     { id: 'raiz', nome: 'Raiz', a: [0, 0.1, 0.07], b: [0, -1.3, 0.03], r1: 0.17, r2: 0.045, fora: [0, 0, 1], gemea: [[0, 0.1, -0.07], [0, -1.3, -0.03]], texto: 'Raiz única, achatada no sentido mésio-distal, com sulcos longitudinais nas faces proximais.' },
   ],
@@ -116,7 +116,7 @@ const PM1I: MolarSuperior = {
   ponte: { a: [0, 0.6, 0.02], b: [-0.01, 0.5, -0.17], r: 0.055, nome: 'Crista transversal', texto: 'Crista de esmalte que une a cúspide vestibular à lingual, separando a fosseta mesial da distal.' },
   tuberculo: null,
   fossetas: [
-    { id: 'fosseta-m', nome: 'Fosseta mesial', c: [-0.17, 0.7, -0.08], r: [0.07, 0.1, 0.08], texto: 'Depressão por mesial da crista transversal. É menor que a distal.' },
+    { id: 'fosseta-m', nome: 'Fosseta mesial', c: [-0.17, 0.735, -0.08], r: [0.08, 0.1, 0.09], texto: 'Depressão por mesial da crista transversal. É menor que a distal.' },
     { id: 'fosseta-d', nome: 'Fosseta distal', c: [0.18, 0.7, -0.08], r: [0.08, 0.1, 0.09], texto: 'Depressão por distal da crista transversal.' },
   ],
   sulcos: [
@@ -160,10 +160,10 @@ const PM2I: MolarSuperior = {
   ],
   ponte: null,
   tuberculo: null,
-  fossetas: [{ id: 'fosseta-c', nome: 'Fosseta central', c: [0.01, 0.78, -0.02], r: [0.13, 0.12, 0.1], texto: 'Depressão no centro da face oclusal, onde os três sulcos se encontram em forma de Y.' }],
+  fossetas: [{ id: 'fosseta-c', nome: 'Fosseta central', c: [0.01, 0.75, -0.02], r: [0.13, 0.12, 0.1], texto: 'Depressão no centro da face oclusal, onde os três sulcos se encontram em forma de Y.' }],
   sulcos: [
-    { id: 'sulco-md', nome: 'Sulco principal mésio-distal', a: [-0.23, 0.705, -0.02], b: [0.24, 0.7, -0.02], r: 0.032, texto: 'Sulco central, que separa a cúspide vestibular das duas linguais.' },
-    { id: 'sulco-l', nome: 'Sulco lingual', a: [0.01, 0.7, -0.02], b: [0.02, 0.57, -0.4], r: 0.03, desce: true, texto: 'Separa as duas cúspides linguais e desce pela face lingual. Com o sulco principal forma o Y.' },
+    { id: 'sulco-md', nome: 'Sulco principal mésio-distal', a: [-0.23, 0.675, -0.02], b: [0.24, 0.67, -0.02], r: 0.038, texto: 'Sulco central, que separa a cúspide vestibular das duas linguais.' },
+    { id: 'sulco-l', nome: 'Sulco lingual', a: [0.01, 0.67, -0.02], b: [0.02, 0.55, -0.4], r: 0.03, desce: true, texto: 'Separa as duas cúspides linguais e desce pela face lingual. Com o sulco principal forma o Y.' },
   ],
   raizes: [{ id: 'raiz', nome: 'Raiz', a: [0, 0.1, 0.05], b: [0, -1.32, 0.02], r1: 0.18, r2: 0.045, fora: [0, 0, 1], gemea: [[0, 0.1, -0.05], [0, -1.32, -0.02]], texto: 'Raiz única, cônica e mais longa e volumosa que a do primeiro pré-molar inferior.' }],
   uniao: 0.16,
