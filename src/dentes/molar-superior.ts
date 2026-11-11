@@ -54,6 +54,9 @@ const entre = (a: V, b: V, t: number): V => [a[0] + (b[0] - a[0]) * t, a[1] + (b
 const reta = (a: V, b: V, n: number): V[] => Array.from({ length: n }, (_, i) => entre(a, b, i / (n - 1)));
 const sinal = (v: number) => (v < 0 ? -1 : 1);
 
+/* um sulco que chega à face livre continua por ela, cada vez mais raso, até sumir no terço médio */
+const desceFace = (s: { b: V; r: number }): No => cone(s.b, [s.b[0], s.b[1] - 0.26, s.b[2] + Math.sign(s.b[2]) * 0.05], s.r, 0.004);
+
 export function molarSuperior(p: MolarSuperior): Dente {
   const naRaiz = (no: No) => dobra(p.curva, ALTURA, no);
   const Y0 = 0.05; // a coroa se inclina a partir do colo
@@ -71,7 +74,7 @@ export function molarSuperior(p: MolarSuperior): Dente {
     ...p.cuspides.map((c) => esfera(c.c, c.r)),
     ...(p.ponte ? [capsula(p.ponte.a, p.ponte.b, p.ponte.r)] : []),
   );
-  const escavado = cava(0.07, une(0.06, cava(0.09, macico, ...p.fossetas.map((f) => elipse(f.c, f.r))), ...p.cuspides.map((c) => capsula(...cristaDe(c), 0.04))), ...p.sulcos.map((s) => capsula(s.a, s.b, s.r)));
+  const escavado = cava(0.07, une(0.06, cava(0.09, macico, ...p.fossetas.map((f) => elipse(f.c, f.r))), ...p.cuspides.map((c) => capsula(...cristaDe(c), 0.04))), ...p.sulcos.flatMap((s) => (s.desce ? [capsula(s.a, s.b, s.r), desceFace(s)] : [capsula(s.a, s.b, s.r)])));
   const coroa = p.tuberculo ? une(0.05, escavado, esfera(p.tuberculo.c, p.tuberculo.r)) : escavado;
   const macicas = une(p.uniao, ...p.raizes.flatMap((r) => [cone(r.a, r.b, r.r1, r.r2), ...(r.gemea ? [cone(r.gemea[0], r.gemea[1], r.r1, r.r2)] : [])]));
   const raizes = naRaiz(p.sulcosRaiz?.length ? cava(0.05, macicas, ...p.sulcosRaiz.map((s) => cone(...s))) : macicas);

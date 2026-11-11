@@ -161,6 +161,12 @@ h1 em { display: block; margin-top: .06em; color: var(--ac); text-transform: non
 #sem-webgl { position: fixed; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; text-align: center; background: var(--bg); font: 400 22px/1.3 var(--f-s); }
 #sem-webgl[hidden] { display: none; }
 
+/* em janelas médias o rodapé quebraria em várias linhas e invadiria o índice */
+@media (max-width: 1180px) {
+  .base span:nth-child(2) { display: none; }
+  .base { white-space: nowrap; }
+}
+
 /* ---------- telas estreitas ----------
    Não há espaço para colunas de nomes: cada estrutura vira um ponto tocável sobre o dente,
    e o nome aparece na nota, embaixo. A identificação sobe e os comandos descem. */

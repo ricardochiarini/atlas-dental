@@ -40,6 +40,9 @@ const entre = (a: V, b: V, t: number): V => [a[0] + (b[0] - a[0]) * t, a[1] + (b
 const reta = (a: V, b: V, n: number): V[] => Array.from({ length: n }, (_, i) => entre(a, b, i / (n - 1)));
 const sinal = (v: number) => (v < 0 ? -1 : 1);
 
+/* um sulco que chega à face livre continua por ela, cada vez mais raso, até sumir no terço médio */
+const desceFace = (s: { b: V; r: number }): No => cone(s.b, [s.b[0], s.b[1] - 0.26, s.b[2] + Math.sign(s.b[2]) * 0.05], s.r, 0.004);
+
 export function molarInferior(p: MolarInferior): Dente {
   const naRaiz = (no: No) => dobra(p.curva, ALTURA, no);
   const Y0 = 0.05; // a coroa se inclina a partir do colo
@@ -58,7 +61,7 @@ export function molarInferior(p: MolarInferior): Dente {
       cava(0.1, une(0.12, colo(-0.05, 0.42, 0.8, caixa([0, 0.34, 0], p.coroa.b, p.coroa.r)), ...p.cuspides.map((c) => esfera(c.c, c.r))), elipse(p.fosseta.c, p.fosseta.r)),
       ...p.cuspides.map((c) => capsula(...cristaDe(c), 0.042)),
     ),
-    ...p.sulcos.map((s) => capsula(s.a, s.b, s.r)),
+    ...p.sulcos.flatMap((s) => (s.desce ? [capsula(s.a, s.b, s.r), desceFace(s)] : [capsula(s.a, s.b, s.r)])),
   );
   const { mesial, distal } = p.raizes;
   const macicas = une(p.raizes.uniao, cone(mesial.a, mesial.b, mesial.r1, mesial.r2), cone(distal.a, distal.b, distal.r1, distal.r2));
