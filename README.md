@@ -30,7 +30,7 @@ O Three.js entra só para criar o contexto WebGL e desenhar o retângulo que cob
 
 ## Limites
 
-É uma ilustração esquemática, não material clínico. A polpa está maior do que num dente real para aparecer bem no corte, e a raiz mesial tem um canal só.
+É uma ilustração esquemática, não material clínico. A raiz mesial foi desenhada com um canal só, e o corte é sempre no plano mésio-distal.
 
 ## Rodar
 

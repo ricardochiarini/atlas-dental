@@ -9,6 +9,7 @@
   --f-s: "Instrument Serif", Georgia, serif;
   --f-ui: system-ui, "Segoe UI", sans-serif;
   --f-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --ease: cubic-bezier(.23, 1, .32, 1);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -23,6 +24,7 @@
 html, body { height: 100%; margin: 0; }
 body { background: var(--bg); color: var(--fg); font: 16px/1.5 var(--f-ui); overflow: hidden; }
 a { color: inherit; text-underline-offset: 3px; }
+button { font: inherit; color: inherit; cursor: pointer; }
 :focus-visible { outline: 2px solid var(--ac); outline-offset: 3px; }
 .hud { font: 500 11px/1.35 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; }
 
@@ -30,38 +32,59 @@ a { color: inherit; text-underline-offset: 3px; }
 #tela:active { cursor: grabbing; }
 #tela:focus-visible { outline-offset: -4px; }
 
-/* Texto por cima da tela; só os controles recebem o ponteiro, o resto deixa girar o dente. */
-.folha { position: fixed; left: clamp(16px, 4vw, 56px); top: clamp(20px, 6vh, 64px); width: min(400px, 36vw); pointer-events: none; }
-.folha > * { pointer-events: auto; }
-.folha .hud { color: var(--mut); margin: 0 0 14px; }
-h1 { margin: 0; font: 400 clamp(44px, 5.4vw, 84px)/.95 var(--f-s); text-transform: uppercase; letter-spacing: -.01em; }
+/* Coluna de texto por cima da tela; só os controles recebem o ponteiro. */
+.folha { position: fixed; left: clamp(16px, 4vw, 56px); top: clamp(20px, 5vh, 56px); bottom: 56px; width: min(380px, 34vw); display: flex; flex-direction: column; pointer-events: none; }
+.folha > * { pointer-events: auto; flex: none; }
+.folha > .hud { color: var(--mut); margin: 0 0 14px; }
+h1 { margin: 0; font: 400 clamp(40px, 5vw, 76px)/.95 var(--f-s); text-transform: uppercase; letter-spacing: -.01em; }
 h1 em { display: block; color: var(--ac); text-transform: none; }
-.texto { margin: 22px 0 0; max-width: 36ch; color: var(--mut); }
+.texto { margin: 18px 0 0; max-width: 36ch; color: var(--mut); font-size: 15px; }
 
-.controles { display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; align-items: center; margin-top: 28px; max-width: 330px; }
+.controles { display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; align-items: center; margin-top: 22px; max-width: 330px; }
 .controles label { display: flex; justify-content: space-between; grid-column: 1 / -1; color: var(--mut); margin: 0; }
 .controles output { color: var(--fg); }
 .controles input { width: 100%; margin: 0; accent-color: var(--ac); }
-.controles button { padding: 8px 12px; border: 1px solid var(--fio); border-radius: 99px; background: none; color: var(--fg); cursor: pointer; transition: background-color .18s cubic-bezier(.23, 1, .32, 1), color .18s; }
-.controles button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 
-.camadas { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 22px 0 0; padding: 0; list-style: none; color: var(--mut); }
-.camadas i { display: inline-block; width: 10px; height: 10px; margin-right: 7px; border: 1px solid var(--fio); border-radius: 50%; vertical-align: -1px; }
-[data-cor="esmalte"] { background: var(--esmalte); }
-[data-cor="dentina"] { background: var(--dentina); }
-[data-cor="polpa"] { background: var(--polpa); }
-[data-cor="cemento"] { background: var(--cemento); }
+.chave, .vistas button { padding: 7px 11px; border: 1px solid var(--fio); border-radius: 99px; background: none; transition: background-color .18s var(--ease), color .18s, border-color .18s; }
+.chave[aria-pressed="true"], .vistas button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+@media (hover: hover) { .chave:hover, .vistas button:hover { border-color: var(--fg); } }
 
-/* Rótulos presos a pontos do corte. O JavaScript calcula a posição a cada quadro. */
+.vistas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 16px; }
+.vistas > span { color: var(--mut); }
+#vistas { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Índice: todas as estruturas, agrupadas. Rola por dentro quando não cabe. */
+#indice { margin-top: 18px; min-height: 0; flex: 1 1 0; overflow-y: auto; border-top: 1px solid var(--fio); scrollbar-width: thin; }
+#indice summary { position: sticky; top: 0; z-index: 1; padding: 12px 0; background: var(--bg); color: var(--mut); cursor: pointer; }
+#indice[open] summary { color: var(--fg); }
+#lista { padding: 0 8px 8px 0; }
+#lista h3 { margin: 10px 0 4px; font: 500 11px/1.35 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--mut); }
+#lista h3:first-child { margin-top: 0; }
+#lista button { display: block; width: 100%; padding: 5px 8px; border: 0; border-radius: 6px; background: none; text-align: left; font: 400 19px/1.2 var(--f-s); transition: background-color .15s var(--ease), color .15s; }
+#lista button[aria-current="true"] { background: var(--fg); color: var(--bg); }
+@media (hover: hover) { #lista button:hover:not([aria-current="true"]) { color: var(--ac); } }
+
+/* Nomes presos ao dente. A posição vem do JavaScript, em variáveis --x e --y. */
 #linhas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-#linhas line { stroke: var(--fg); stroke-width: 1; }
-#linhas circle { fill: var(--bg); stroke: var(--fg); stroke-width: 1; }
-#rotulos { position: fixed; inset: 0; margin: 0; padding: 0; list-style: none; pointer-events: none; }
-#rotulos li { position: absolute; left: 0; top: 0; width: 190px; opacity: 0; will-change: transform, opacity; }
-#rotulos b { display: block; font: 400 26px/1 var(--f-s); }
-#rotulos span { display: block; margin-top: 4px; color: var(--mut); font-size: 13px; line-height: 1.35; }
-#rotulos li.direita { text-align: left; }
-#rotulos li.esquerda { text-align: right; }
+#linhas line { stroke: var(--fg); stroke-width: 1; opacity: 0; transition: opacity .2s var(--ease); }
+#linhas circle { fill: var(--bg); stroke: var(--fg); stroke-width: 1; opacity: 0; transition: opacity .2s var(--ease); }
+#linhas .on { opacity: .55; }
+#linhas circle.on { opacity: 1; }
+#linhas .sel { opacity: 1; stroke: var(--ac); }
+#linhas circle.sel { fill: var(--ac); }
+
+#rotulos { position: fixed; inset: 0; pointer-events: none; }
+.rot { position: absolute; left: 0; top: 0; padding: 2px 6px; border: 0; border-radius: 6px; background: none; white-space: nowrap; font: 400 20px/1.15 var(--f-s); opacity: 0; visibility: hidden; pointer-events: none; transform: translate(var(--x), var(--y)) translateY(-50%); transition: opacity .2s var(--ease), color .15s, visibility 0s .2s; }
+.rot.esq { transform: translate(var(--x), var(--y)) translate(-100%, -50%); }
+.rot.on { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .2s var(--ease), color .15s; }
+.rot.sel { color: var(--ac); }
+@media (hover: hover) { .rot:hover { color: var(--ac); } }
+
+/* Ficha da estrutura selecionada */
+#ficha { position: fixed; right: clamp(16px, 4vw, 56px); bottom: 52px; width: min(320px, 30vw); padding-top: 12px; border-top: 1px solid var(--fg); pointer-events: none; }
+#ficha .hud { margin: 0 0 6px; color: var(--mut); }
+#ficha h2 { margin: 0; font: 400 28px/1.05 var(--f-s); }
+#ficha p:last-child { margin: 8px 0 0; color: var(--mut); font-size: 14px; line-height: 1.45; }
 
 .base { position: fixed; left: clamp(16px, 4vw, 56px); right: clamp(16px, 4vw, 56px); bottom: 18px; display: flex; flex-wrap: wrap; gap: 4px 24px; justify-content: space-between; color: var(--mut); pointer-events: none; }
 .base a { pointer-events: auto; color: var(--fg); }
@@ -69,17 +92,25 @@ h1 em { display: block; color: var(--ac); text-transform: none; }
 #sem-webgl { position: fixed; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; text-align: center; background: var(--bg); }
 #sem-webgl[hidden] { display: none; }
 
-/* Telas estreitas: o texto sobe, o dente ocupa o meio e os rótulos viram a legenda de cores. */
+/* Telas estreitas: não há espaço para colunas de nomes. Cada estrutura vira um ponto
+   tocável sobre o dente, e o nome aparece na ficha, embaixo. */
 @media (max-width: 860px) {
-  .folha { width: auto; right: 16px; top: 16px; }
-  h1 { font-size: clamp(34px, 10vw, 52px); }
+  .folha { width: auto; right: 16px; top: 14px; bottom: auto; }
+  .folha > .hud { margin-bottom: 6px; }
+  h1 { font-size: clamp(30px, 9vw, 46px); }
   h1 em { display: inline; }
-  .texto { display: none; }
-  .folha .hud { margin-bottom: 8px; }
-  .controles { position: fixed; left: 16px; right: 16px; bottom: 64px; max-width: none; margin: 0; }
-  .camadas { position: fixed; left: 16px; right: 16px; bottom: 126px; margin: 0; }
-  #rotulos, #linhas { display: none; }
-  .base span:last-child { display: none; }
+  .texto, #indice, .vistas > span { display: none; }
+  .controles { position: fixed; left: 16px; right: 16px; bottom: 50px; max-width: none; margin: 0; }
+  .vistas { position: fixed; left: 16px; right: 0; bottom: 104px; margin: 0; }
+  #vistas { flex-wrap: nowrap; overflow-x: auto; padding-right: 16px; scrollbar-width: none; }
+  #vistas button { white-space: nowrap; }
+  #ficha { left: 16px; right: 16px; bottom: 150px; width: auto; }
+  #ficha h2 { font-size: 22px; }
+  #ficha p:last-child { font-size: 13px; }
+  #linhas line { display: none; }
+  .rot { width: 30px; height: 30px; padding: 0; font-size: 0; transform: translate(var(--x), var(--y)) translate(-50%, -50%); }
+  .rot.esq { transform: translate(var(--x), var(--y)) translate(-50%, -50%); }
+  .base span { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

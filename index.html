@@ -4,41 +4,46 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Anatomia de um molar · Ricardo Chiarini</title>
-    <meta name="description" content="Um molar inferior desenhado inteiro em um shader WebGL, do esmalte à polpa. Sem modelo 3D e sem textura. Gire e corte ao meio." />
+    <meta name="description" content="Atlas de um molar inferior em WebGL: cúspides, sulcos, raízes e, em corte, esmalte, dentina e polpa. Desenhado inteiro em um shader, sem modelo 3D." />
     <meta name="theme-color" content="#16130F" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#E8E0CF" media="(prefers-color-scheme: light)" />
   </head>
   <body>
     <canvas id="tela" tabindex="0" aria-label="Molar em três dimensões. Arraste ou use as setas do teclado para girar." role="img"></canvas>
 
+    <!-- linhas e nomes presos ao dente; o JavaScript cria e posiciona um por estrutura -->
     <svg id="linhas" aria-hidden="true"></svg>
-    <ul id="rotulos" aria-hidden="true">
-      <li data-camada="esmalte"><b>Esmalte</b><span>A camada mais dura do corpo. Só cobre a coroa.</span></li>
-      <li data-camada="dentina"><b>Dentina</b><span>O corpo do dente, atravessado por túbulos.</span></li>
-      <li data-camada="polpa"><b>Polpa</b><span>Vasos e nervos, da câmara até o ápice de cada raiz.</span></li>
-      <li data-camada="cemento"><b>Cemento</b><span>Reveste a raiz e prende o dente ao osso.</span></li>
-    </ul>
+    <div id="rotulos"></div>
 
     <main class="folha">
       <p class="hud">Laboratório · WebGL · sem modelo 3D</p>
       <h1>Anatomia de <em>um molar</em></h1>
       <p class="texto">
-        Primeiro molar inferior, do esmalte à polpa. O dente inteiro é uma função matemática calculada em cada pixel: não há malha, textura nem arquivo 3D.
+        Primeiro molar inferior esquerdo (dente 36), do esmalte à polpa. O dente inteiro é uma função matemática calculada em cada pixel: não há malha, textura nem arquivo 3D.
       </p>
 
       <div class="controles">
         <label class="hud" for="corte">Corte <output id="corte-valor">0%</output></label>
         <input id="corte" type="range" min="0" max="100" step="1" value="0" />
-        <button id="giro" type="button" class="hud" aria-pressed="true">Girar sozinho</button>
+        <button id="giro" type="button" class="hud chave" aria-pressed="true">Girar sozinho</button>
       </div>
 
-      <ul class="camadas hud" aria-label="Camadas do dente">
-        <li><i data-cor="esmalte"></i>Esmalte</li>
-        <li><i data-cor="dentina"></i>Dentina</li>
-        <li><i data-cor="polpa"></i>Polpa</li>
-        <li><i data-cor="cemento"></i>Cemento</li>
-      </ul>
+      <div class="vistas" role="group" aria-label="Vistas">
+        <span class="hud">Vista</span>
+        <div id="vistas"></div>
+      </div>
+
+      <details id="indice">
+        <summary class="hud">Índice · <span id="total"></span> estruturas</summary>
+        <div id="lista"></div>
+      </details>
     </main>
+
+    <aside id="ficha" aria-live="polite">
+      <p class="hud" id="ficha-grupo">Como usar</p>
+      <h2 id="ficha-nome">Gire, corte e toque nos nomes</h2>
+      <p id="ficha-texto">Arraste o dente para girar. Abra o corte para ver o interior. Cada nome leva à descrição da estrutura.</p>
+    </aside>
 
     <footer class="base hud">
       <a href="https://ricardochiarini.com/lab">← Laboratório</a>
