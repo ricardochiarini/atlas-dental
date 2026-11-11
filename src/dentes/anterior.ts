@@ -237,7 +237,6 @@ export function anterior(p: Anterior): Dente {
     cemento: 0.022,
     inclina: { x: incX, z: incZ, y0: Y0 },
     curva: { forca: p.curva, altura: ALTURA },
-    realce: { topo: T, apice: base, cuspides: p.canino ? [{ nome: 'Cúspide', c: ((v: V): V => { const h = Math.max(v[1] - Y0, 0); return [v[0] + incX * h, v[1], v[2] + incZ * h]; })([-0.03, T - 0.08, 0]) }] : [] },
     centro: [0, meio, 0],
     raio: (T - base) / 2 + 0.16,
     chao: superior ? T + 0.14 : base - 0.12,

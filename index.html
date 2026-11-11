@@ -47,11 +47,6 @@
         <div id="planos"></div>
       </div>
 
-      <div class="linha realce" role="group" aria-label="Regiões pintadas no dente">
-        <span>realce</span>
-        <div id="realces"></div>
-      </div>
-
       <div class="linha posicao">
         <label for="corte">posição</label>
         <input id="corte" type="range" min="0" max="100" step="1" value="0" />
@@ -67,11 +62,7 @@
     </main>
 
     <!-- legenda: cada grupo de estruturas tem uma cor; clicar liga e desliga o grupo no dente -->
-    <div id="legendas">
-      <div id="grupos" role="group" aria-label="Grupos de estruturas, por cor"></div>
-      <!-- legenda das regiões pintadas no dente (terços ou cúspides) -->
-      <div id="realce-leg" aria-live="polite"></div>
-    </div>
+    <div id="grupos" role="group" aria-label="Grupos de estruturas, por cor"></div>
 
     <p id="legenda" class="fig"></p>
 

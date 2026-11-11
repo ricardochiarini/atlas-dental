@@ -56,9 +56,6 @@ export interface Dente {
   raio: number;
   chao: number;
   planos: Plano[];
-  /** para pintar regiões no próprio dente: altura do topo da coroa e do ápice (os terços são
-      contados entre eles e a linha cervical) e o vértice de cada cúspide */
-  realce?: { topo: number; apice: number; cuspides: { nome: string; c: V }[] };
   /** as estruturas dependem do modelo já calculado, para gerar amostras a partir da superfície */
   estruturas(m: import('./modelo').Modelo): Estrutura[];
 }

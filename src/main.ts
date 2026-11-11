@@ -28,27 +28,12 @@ try {
   throw new Error('WebGL 2 indisponível');
 }
 
-/* Cores das regiões pintadas no dente. As mesmas servem ao shader e à legenda. */
-const PAL_TERCOS = ['#D9694A', '#E9B949', '#6FA98C', '#5E93C4', '#8F7FC4', '#C0739C'];
-const PAL_CUSPIDES = ['#D9694A', '#4E8FCB', '#6FA85A', '#E3B23C', '#9079C6'];
-function rgb(hex: string) {
-  const n = parseInt(hex.slice(1), 16);
-  return new THREE.Vector3(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
-}
-
 const uniformes = {
   uRes: { value: new THREE.Vector2(1, 1) },
   uOlho: { value: new THREE.Vector3() },
   uBase: { value: new THREE.Matrix3() },
   uFoco: { value: 3 },
   uZero: { value: 0 },
-  uRealce: { value: 0 },
-  uTopo: { value: 1 },
-  uApice: { value: -1 },
-  uCusp: { value: Array.from({ length: 5 }, () => new THREE.Vector3()) },
-  uNCusp: { value: 0 },
-  uPalT: { value: PAL_TERCOS.map(rgb) },
-  uPalC: { value: PAL_CUSPIDES.map(rgb) },
   uDesloc: { value: 0 },
   uPlano: { value: new THREE.Vector3(0, 0, 1) },
   uCorte: { value: 0.62 },
@@ -470,31 +455,6 @@ function chip(caixa: HTMLElement, nome: string, aoClicar: (b: HTMLButtonElement)
   return caixa.appendChild(b);
 }
 
-/* regiões pintadas no dente e a legenda delas */
-let realce: 0 | 1 | 2 = 0;
-function aplicaRealce() {
-  const r = def.realce;
-  uniformes.uRealce.value = r ? realce : 0;
-  const caixa = $<HTMLElement>('#realce-leg');
-  caixa.replaceChildren();
-  if (!r || realce === 0) { sujo = true; return; }
-  uniformes.uTopo.value = r.topo;
-  uniformes.uApice.value = r.apice;
-  uniformes.uNCusp.value = Math.min(r.cuspides.length, 5);
-  r.cuspides.slice(0, 5).forEach((c, i) => uniformes.uCusp.value[i].set(c.c[0], c.c[1], c.c[2]));
-  const item = (nome: string, cor: string) => { const s = document.createElement('span'); s.textContent = nome; s.style.setProperty('--cg', cor); caixa.appendChild(s); };
-  const titulo = (nome: string) => { const b = document.createElement('b'); b.textContent = nome; caixa.appendChild(b); };
-  if (realce === 1) {
-    titulo('coroa');
-    [def.incisal ? 'terço incisal' : 'terço oclusal', 'terço médio', 'terço cervical'].forEach((n, i) => item(n, PAL_TERCOS[i]));
-    titulo('raiz');
-    ['terço cervical', 'terço médio', 'terço apical'].forEach((n, i) => item(n, PAL_TERCOS[3 + i]));
-  } else {
-    r.cuspides.slice(0, 5).forEach((c, i) => item(c.nome, PAL_CUSPIDES[i]));
-  }
-  sujo = true;
-}
-
 /* cortes: trocam o plano, levam-no à posição clássica e viram a face cortada para a câmera */
 function abreCorte(p: Plano) {
   aplicaZoom(1, 0, 0); // vistas e cortes mostram o dente inteiro
@@ -533,15 +493,6 @@ function montaControles() {
   );
   $('#planos').replaceChildren();
   botoesPlano = def.planos.map((p) => chip($('#planos'), p.nome, () => abreCorte(p)));
-
-  /* realce: pinta os terços ou as cúspides no próprio dente. A escolha vale ao trocar de dente. */
-  const temCuspides = (def.realce?.cuspides.length ?? 0) > 0;
-  if (realce === 2 && !temCuspides) realce = 0;
-  $('#realces').replaceChildren();
-  const opcoes: [string, 0 | 1 | 2][] = [['Nenhum', 0], ['Terços', 1], ...(temCuspides ? [['Cúspides', 2] as [string, 0 | 1 | 2]] : [])];
-  const botoesRealce = opcoes.map(([nome, modo]) => chip($('#realces'), nome, () => { realce = modo; aplicaRealce(); marca(botoesRealce, botoesRealce[opcoes.findIndex((o) => o[1] === realce)]); }));
-  marca(botoesRealce, botoesRealce[opcoes.findIndex((o) => o[1] === realce)]);
-  aplicaRealce();
 }
 
 /* ---------- troca de dente ---------- */

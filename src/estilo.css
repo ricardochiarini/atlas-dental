@@ -70,7 +70,7 @@ h1 em { display: block; margin-top: .06em; color: var(--ac); text-transform: non
 
 /* comandos em linha de texto: um rótulo em itálico e as opções em seguida */
 .linha { display: flex; align-items: baseline; gap: 14px; margin-top: 12px; }
-#arcada-painel { width: clamp(150px, calc((100vh - 592px) / 1.1), 350px); margin: 14px 0 0 -8px; }
+#arcada-painel { width: clamp(150px, calc((100vh - 555px) / 1.1), 350px); margin: 14px 0 0 -8px; }
 #arcada-painel svg { display: block; width: 100%; height: auto; }
 #arcada-painel .dente text { font-size: 11.5px; }
 #arcada-painel .legenda { font-size: 13px; }
@@ -100,15 +100,7 @@ h1 em { display: block; margin-top: .06em; color: var(--ac); text-transform: non
 
 /* ---------- legenda de cores ---------- */
 /* fica no alto da figura, na faixa livre entre o título da página e o botão de saída */
-#legendas { position: fixed; top: 16px; left: calc(var(--margem) + min(420px, 34vw) + 48px); right: 190px; pointer-events: none; }
-#legendas > * { pointer-events: auto; }
-#grupos, #realce-leg { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 18px; }
-#realce-leg { margin-top: 6px; }
-#realce-leg:empty { display: none; }
-#realce-leg > b { font: italic 400 17px/1.2 var(--f-s); color: var(--mut); }
-#realce-leg > span { display: inline-flex; align-items: baseline; gap: 6px; font-size: 13px; white-space: nowrap; }
-#realce-leg > span::before { content: ""; flex: none; width: 10px; height: 10px; background: var(--cg); border-radius: 50%; }
-#realces { display: flex; flex-wrap: wrap; gap: 0 14px; }
+#grupos { position: fixed; top: 16px; left: calc(var(--margem) + min(420px, 34vw) + 48px); right: 190px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 18px; }
 .leg { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 0; border: 0; background: none; font-size: 13px; color: var(--fg); white-space: nowrap; }
 .leg::before { content: ""; flex: none; width: 8px; height: 8px; border: 1px solid var(--cg); background: var(--cg); }
 .leg[aria-pressed="false"] { color: var(--mut); }
@@ -231,7 +223,7 @@ h1 em { display: block; margin-top: .06em; color: var(--ac); text-transform: non
   .linha.posicao { bottom: 44px; right: var(--margem); max-width: none; width: auto; }
   #vistas, #planos { flex-wrap: nowrap; overflow-x: auto; padding-right: var(--margem); scrollbar-width: none; }
   .opcao { white-space: nowrap; padding: 9px 0; }
-  .giro, #indice, #legendas, .linha.realce, .fig, .base span:nth-child(2), .base span:nth-child(3) { display: none; }
+  .giro, #indice, #grupos, .fig, .base span:nth-child(2), .base span:nth-child(3) { display: none; }
   #ficha { left: var(--margem); right: var(--margem); bottom: 162px; width: auto; }
   #ficha h2 { font-size: 23px; }
   #ficha p { font-size: 13.5px; }
