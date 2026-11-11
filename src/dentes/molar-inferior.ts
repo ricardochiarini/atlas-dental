@@ -153,7 +153,7 @@ export function molarInferior(p: MolarInferior): Dente {
         const meio = entre(s.a, s.b, s.desce ? 0.45 : 0.3);
         const sz = sinal(s.b[2] - s.a[2]);
         const externas: [V, V][] = s.desce ? [[meio, [0, 1, sz * 0.3]], [entre(s.a, s.b, 0.92), [0, 0.55, sz * 0.85]]] : [[meio, [0, 1, 0]], [entre(s.a, s.b, 0.72), [0, 1, 0]]];
-        return { id: s.id, nome: s.nome, grupo: 'Sulcos e fossetas', texto: s.texto, externas };
+        return { id: s.id, nome: s.nome, grupo: 'Sulcos e fossetas', texto: s.texto, externas, segs: [[s.a, s.face ?? s.b, s.r * 2.2]] };
       }),
       ...(p.fossetaVestibular ? [{ id: 'fosseta-v', nome: 'Fosseta vestibular', grupo: 'Sulcos e fossetas', texto: 'Pequena depressão na face vestibular, onde termina o sulco mésio-vestibular. É um ponto frequente de cárie.', externas: [[[p.fossetaVestibular.c[0], p.fossetaVestibular.c[1], 0], [0, 0, 1]]] } as Estrutura] : []),
       { id: 'fosseta-c', nome: 'Fosseta central', grupo: 'Sulcos e fossetas', texto: 'Depressão no centro da face oclusal, no encontro do sulco mésio-distal com os sulcos que vêm das faces livres.', externas: [[[p.fosseta.c[0], 0.3, 0], [0, 1, 0]]] },
@@ -169,8 +169,8 @@ export function molarInferior(p: MolarInferior): Dente {
       /* ---------- Raiz ---------- */
       { id: 'tronco', nome: 'Tronco radicular', grupo: 'Raiz', texto: jac.tronco, externas: [[[0.02, -0.03, 0], [0, 0, 1]], [[0.02, -0.03, 0], [0, 0, -1]]] },
       ...(p.furca !== null ? [{ id: 'furca', nome: 'Furca', grupo: 'Raiz', texto: 'Região em que o tronco radicular se bifurca. No molar inferior a furca é vestíbulo-lingual, com entradas pelas duas faces.', externas: [[m.desdobra([0, p.furca, 0.1]), [0, -0.6, 0.8]], [m.desdobra([0, p.furca, -0.1]), [0, -0.6, -0.8]]] } as Estrutura] : []),
-      { id: 'raiz-m', nome: 'Raiz mesial', grupo: 'Raiz', texto: jac['raiz-m'], externas: emVolta(naAltura(mesial, 0.5), -1) },
-      { id: 'raiz-d', nome: 'Raiz distal', grupo: 'Raiz', texto: jac['raiz-d'], externas: emVolta(naAltura(distal, 0.5), 1) },
+      { id: 'raiz-m', nome: 'Raiz mesial', grupo: 'Raiz', texto: jac['raiz-m'], externas: emVolta(naAltura(mesial, 0.5), -1), segs: [[mesial.a, mesial.b, mesial.r1]] },
+      { id: 'raiz-d', nome: 'Raiz distal', grupo: 'Raiz', texto: jac['raiz-d'], externas: emVolta(naAltura(distal, 0.5), 1), segs: [[distal.a, distal.b, distal.r1]] },
       { id: 'terco-c', nome: 'Terço cervical da raiz', grupo: 'Raiz', texto: 'O terço mais próximo da coroa. Inclui o tronco radicular e o começo de cada raiz.', externas: emVolta(naAltura(distal, 0.22), 1) },
       { id: 'terco-m', nome: 'Terço médio da raiz', grupo: 'Raiz', texto: 'A porção intermediária da raiz.', externas: emVolta(naAltura(mesial, 0.36), -1) },
       { id: 'terco-a', nome: 'Terço apical da raiz', grupo: 'Raiz', texto: 'O terço final, onde a raiz se afila e o canal se estreita até o forame.', externas: emVolta(naAltura(distal, 0.82), 1) },

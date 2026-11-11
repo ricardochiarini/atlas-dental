@@ -195,12 +195,12 @@ export function molarSuperior(p: MolarSuperior): Dente {
       ...p.sulcos.map((s): Estrutura => {
         const sz = sinal(s.b[2] - s.a[2]);
         const externas: [V, V][] = s.desce ? [[entre(s.a, s.b, 0.45), [0, 1, sz * 0.3]], [entre(s.a, s.b, 0.92), [0, 0.55, sz * 0.85]]] : [[entre(s.a, s.b, 0.35), [0, 1, 0]], [entre(s.a, s.b, 0.7), [0, 1, 0]]];
-        return { id: s.id, nome: s.nome, grupo: 'Sulcos e fossetas', texto: s.texto, externas };
+        return { id: s.id, nome: s.nome, grupo: 'Sulcos e fossetas', texto: s.texto, externas, segs: [[s.a, s.face ?? s.b, s.r * 2.2]] };
       }),
       ...p.fossetas.map((f): Estrutura => ({ id: f.id, nome: f.nome, grupo: 'Sulcos e fossetas', texto: f.texto, externas: [[[f.c[0], 0.3, f.c[2]], [0, 1, 0]]] })),
 
       /* ---------- Cristas e vertentes ---------- */
-      ...(p.ponte ? [{ id: 'ponte', nome: p.ponte.nome ?? 'Ponte de esmalte', grupo: 'Cristas e vertentes', texto: p.ponte.texto ?? 'Crista oblíqua que une a cúspide mésio-palatina à disto-vestibular, separando a fosseta central da distal. É a marca do molar superior.', externas: [[entre(p.ponte.a, p.ponte.b, 0.5), [0, 1, 0]], [entre(p.ponte.a, p.ponte.b, 0.3), [0, 1, 0]]] } as Estrutura] : []),
+      ...(p.ponte ? [{ id: 'ponte', nome: p.ponte.nome ?? 'Ponte de esmalte', grupo: 'Cristas e vertentes', segs: [[p.ponte.a, p.ponte.b, p.ponte.r * 1.5]], texto: p.ponte.texto ?? 'Crista oblíqua que une a cúspide mésio-palatina à disto-vestibular, separando a fosseta central da distal. É a marca do molar superior.', externas: [[entre(p.ponte.a, p.ponte.b, 0.5), [0, 1, 0]], [entre(p.ponte.a, p.ponte.b, 0.3), [0, 1, 0]]] } as Estrutura] : []),
       { id: 'crista-m', nome: 'Crista marginal mesial', grupo: 'Cristas e vertentes', texto: 'Elevação de esmalte que fecha a face oclusal por mesial, unindo a cúspide mésio-vestibular à mésio-palatina.', externas: [[[-(largura - 0.08), principal.a[1] - 0.04, 0.02], [-0.45, 1, 0]]] },
       { id: 'crista-d', nome: 'Crista marginal distal', grupo: 'Cristas e vertentes', texto: 'Fecha a face oclusal por distal. É mais curta que a mesial.', externas: [[[largura - 0.06, principal.a[1] - 0.09, 0], [0.45, 1, 0]]] },
       { id: 'vert-t', nome: 'Vertente triturante', grupo: 'Cristas e vertentes', texto: 'Vertente interna da cúspide, voltada para o centro da face oclusal.', externas: p.cuspides.slice(0, 1).concat(p.cuspides.filter((c) => c.c[2] < 0).slice(0, 1)).map((c): [V, V] => [soma(c.c, [0.04, -0.3, -sinal(c.c[2]) * 0.12]), [0.3, 0.9, -sinal(c.c[2]) * 0.4]]) },
@@ -209,7 +209,7 @@ export function molarSuperior(p: MolarSuperior): Dente {
       /* ---------- Raiz ---------- */
       { id: 'tronco', nome: 'Tronco radicular', grupo: 'Raiz', texto: t.tronco, externas: [[[0.02, -0.03, 0], [0, 0, 1]], [[0.02, -0.03, 0], [0, 0, -1]], [[0, -0.03, 0], [-1, 0, 0]]] },
       ...(p.furcas.length ? [{ id: 'furca', nome: 'Furca', grupo: 'Raiz', texto: t.furca, externas: p.furcas.map(([a, d]): [V, V] => [m.desdobra(a), d]) } as Estrutura] : []),
-      ...p.raizes.map((r): Estrutura => ({ id: r.id, nome: r.nome, grupo: 'Raiz', texto: r.texto, externas: emVolta(naAltura(r, 0.55), r.fora) })),
+      ...p.raizes.map((r): Estrutura => ({ id: r.id, nome: r.nome, grupo: 'Raiz', texto: r.texto, externas: emVolta(naAltura(r, 0.55), r.fora), segs: [[r.a, r.b, r.r1]] })),
       { id: 'terco-c', nome: 'Terço cervical da raiz', grupo: 'Raiz', texto: 'O terço mais próximo da coroa. Inclui o tronco radicular e o começo de cada raiz.', externas: [...emVolta(naAltura(ultima, 0.25), ultima.fora), ...emVolta(naAltura(primeira, 0.25), primeira.fora)] },
       { id: 'terco-m', nome: 'Terço médio da raiz', grupo: 'Raiz', texto: 'A porção intermediária da raiz.', externas: [...emVolta(naAltura(primeira, 0.4), primeira.fora), ...emVolta(naAltura(ultima, 0.4), ultima.fora)] },
       { id: 'terco-a', nome: 'Terço apical da raiz', grupo: 'Raiz', texto: 'O terço final, onde a raiz se afila e o canal se estreita até o forame.', externas: [...emVolta(naAltura(ultima, 0.82), ultima.fora), ...emVolta(naAltura(primeira, 0.82), primeira.fora)] },

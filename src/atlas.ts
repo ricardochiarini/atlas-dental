@@ -21,6 +21,8 @@ export interface Estrutura {
   grupo: Grupo;
   texto: string;
   externas?: [V, V][];
+  /** trechos [início, fim, raio] que cobrem a estrutura (um sulco, uma raiz), para pintá-la inteira */
+  segs?: [V, V, number][];
   internas?: V[];
   tecido?: Tecido;
   /** Distância máxima entre a amostra e o plano de corte para o nome aparecer. */

@@ -43,6 +43,11 @@ const uniformes = {
   uColo: { value: 0 },
   uCusp: { value: Array.from({ length: 5 }, () => new THREE.Vector3()) },
   uNCusp: { value: 0 },
+  uSegA: { value: Array.from({ length: 4 }, () => new THREE.Vector4()) },
+  uSegB: { value: Array.from({ length: 4 }, () => new THREE.Vector3()) },
+  uNSeg: { value: 0 },
+  uEsf: { value: Array.from({ length: 6 }, () => new THREE.Vector4()) },
+  uNEsf: { value: 0 },
   uDesloc: { value: 0 },
   uPlano: { value: new THREE.Vector3(0, 0, 1) },
   uCorte: { value: 0.62 },
@@ -276,12 +281,13 @@ function pontoNoCorte(e: Estrutura, n: V, h: number): V | null {
 
 /* Algumas estruturas são regiões, não pontos: uma face, uma cúspide, uma vertente, um terço da
    raiz. Quando uma delas é escolhida, a região inteira fica tingida no dente. */
-function pintaRegiao(e: Estrutura | null) {
+function pintaRegiao(rot: Rotulo | null) {
   const u = uniformes;
   u.uReg.value = 0;
   sujo = true;
   const r = def.regioes;
-  if (!e || !r) return;
+  const e = rot?.e;
+  if (!rot || !e || !r) return;
   u.uTopo.value = r.topo;
   u.uApice.value = r.apice;
   u.uColo.value = def.jac.base;
@@ -298,6 +304,29 @@ function pintaRegiao(e: Estrutura | null) {
   else if (e.id === 'vert-t' && r.cuspides.length) u.uReg.value = 3;
   else if (e.id.startsWith('terco-')) { u.uReg.value = 5; u.uRegI.value = ['terco-c', 'terco-m', 'terco-a'].indexOf(e.id); }
   else if (qual >= 0 && qual < 5) { u.uReg.value = 1; u.uRegI.value = qual; }
+  else if (e.id === 'raiz') u.uReg.value = 9;
+  else if (e.id === 'cervical') u.uReg.value = 10;
+  else if (e.id === 'borda') { u.uReg.value = 11; u.uRegN.value.set(r.topo - 0.09, 0, 0); }
+  else if (e.segs?.length) {
+    /* um sulco ou uma raiz: o trecho inteiro */
+    u.uReg.value = 7;
+    u.uNSeg.value = Math.min(e.segs.length, 4);
+    e.segs.slice(0, 4).forEach(([a, b, raio], i) => { u.uSegA.value[i].set(a[0], a[1], a[2], raio); u.uSegB.value[i].set(b[0], b[1], b[2]); });
+  } else if (rot.ancoras.length) {
+    /* as demais estruturas externas: a área em volta dos pontos em que ela foi marcada */
+    u.uReg.value = 8;
+    const pts = rot.ancoras.map((a) => a.p);
+    const meio: V = [0, 1, 2].map((k) => pts.reduce((s, p) => s + p[k], 0) / pts.length) as V;
+    const longe = Math.max(...pts.map((p) => Math.hypot(p[0] - meio[0], p[1] - meio[1], p[2] - meio[2])));
+    if (longe < 0.3) {
+      /* os pontos são a mesma estrutura vista de lados diferentes: uma área só, em volta do meio deles */
+      u.uNEsf.value = 1;
+      u.uEsf.value[0].set(meio[0], meio[1], meio[2], Math.max(0.1, longe + 0.06));
+    } else {
+      u.uNEsf.value = Math.min(pts.length, 6);
+      pts.slice(0, 6).forEach((p, k) => u.uEsf.value[k].set(p[0], p[1], p[2], 0.115));
+    }
+  }
 }
 
 function fichaPadrao() {
@@ -313,7 +342,7 @@ function seleciona(id: string, moverCamera: boolean) {
   for (const x of rotulos) x.item.setAttribute('aria-current', String(x === r));
   $('#ficha-nome').textContent = r.e.nome;
   $('#ficha-texto').textContent = r.e.texto;
-  pintaRegiao(r.e);
+  pintaRegiao(r);
 
   if (moverCamera) {
     defineGiro(false);

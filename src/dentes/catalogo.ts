@@ -53,6 +53,7 @@ function espelha(def: Dente, fdi: number): Dente {
         texto: e.texto.replaceAll(String(def.fdi), String(fdi)),
         externas: e.externas?.map(([p, n]) => [mx(p), mx(n)] as [V, V]),
         internas: e.internas?.map(mx),
+        segs: e.segs?.map(([a, b, r]) => [mx(a), mx(b), r] as [V, V, number]),
       })),
   };
 }

@@ -16,7 +16,14 @@ uniform vec3 uCentro;    // centro e raio da esfera que envolve o dente
 uniform float uRaio;
 uniform float uChao;     // altura do chão, onde cai a sombra
 uniform int uReg;         // região da estrutura escolhida, pintada no dente: 0 nenhuma, 1 cúspide, 2 vertente lisa,
-                          // 3 vertente triturante, 4 face (pela direção), 5 terço da raiz, 6 face oclusal
+                          // 3 vertente triturante, 4 face (pela direção), 5 terço da raiz, 6 face oclusal,
+                          // 7 trechos (sulco, raiz), 8 em volta de pontos, 9 raiz inteira, 10 linha cervical,
+                          // 11 acima de uma altura (borda incisal)
+uniform vec4 uSegA[4];    // início e raio de cada trecho
+uniform vec3 uSegB[4];
+uniform int uNSeg;
+uniform vec4 uEsf[6];     // centro e raio em volta de cada ponto
+uniform int uNEsf;
 uniform int uRegI;        // qual cúspide, ou qual terço
 uniform vec3 uRegN;       // para onde a face está voltada
 uniform vec3 uAcento;     // a cor de destaque da página
@@ -166,8 +173,23 @@ vec3 tinge(vec3 p, vec3 rd, float px) {
         float t = clamp((uColo - p.y) / max(uColo - uApice, 0.01), 0.0, 1.0) * 3.0;
         float k = float(uRegI);
         m = (1.0 - naCoroa) * smoothstep(k - 0.03, k + 0.03, t) * (1.0 - smoothstep(k + 0.97, k + 1.03, t));
+      } else if (uReg == 7) {
+        float d = 1e3;
+        for (int i = uZero; i < uNSeg; i++) d = min(d, sdCapsula(p, uSegA[i].xyz, uSegB[i], uSegA[i].w));
+        m = smoothstep(0.012, -0.012, d);
+      } else if (uReg == 8) {
+        float d = 1e3;
+        for (int i = uZero; i < uNEsf; i++) d = min(d, distance(p, uEsf[i].xyz) - uEsf[i].w);
+        m = smoothstep(0.03, -0.03, d);
+      } else if (uReg == 9) {
+        m = 1.0 - naCoroa;
+      } else if (uReg == 10) {
+        m = smoothstep(0.045, 0.02, abs(p.y - c - 0.015));
+      } else if (uReg == 11) {
+        m = smoothstep(uRegN.x - 0.02, uRegN.x + 0.02, p.y);
       }
-      base = mix(base, emLinear(uAcento), 0.6 * m);
+      // no cemento, que é escuro, a tinta precisa ser mais forte para aparecer
+      base = mix(base, emLinear(uAcento), mix(0.8, 0.6, naCoroa) * m);
     }
 
     // ---- textura: só aparece quando o pixel é menor que o detalhe, para não cintilar de longe ----
