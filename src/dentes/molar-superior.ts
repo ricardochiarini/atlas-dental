@@ -57,36 +57,48 @@ const sinal = (v: number) => (v < 0 ? -1 : 1);
 /* Relevo oclusal dos molares. As fichas dão o centro e o raio de cada cúspide; aqui elas
    crescem até perto do contorno da coroa, e sulcos e fossetas descem, para a face oclusal
    ter cúspides altas e vales fundos em vez de uma mesa plana. */
-export function ajustaCuspide<C extends { c: V; r: number }>(c: C, hx: number, hz: number): C {
+export function ajustaCuspide<C extends { c: V; r: number }>(c: C, hx: number, hz: number, rMin = 0): C {
   let [x, y, z] = c.c;
   let r = c.r;
-  const dz = Math.max(0, hz - 0.03 - (Math.abs(z) + r));
-  r += dz * 0.45; z += Math.sign(z) * dz * 0.55; y -= dz * 0.45;
+  /* a cúspide é só o alto da coroa: ela vai para perto da borda sem crescer muito, senão
+     vira uma bola do tamanho da coroa e divide as faces livres em gomos */
+  const dz = Math.max(0, hz - 0.06 - (Math.abs(z) + r));
+  r += dz * 0.15; z += Math.sign(z) * dz * 0.85; y += 0.02 - dz * 0.15;
   if (Math.abs(x) > 0.1) {
-    const dx = Math.max(0, hx - 0.04 - (Math.abs(x) + r));
-    r += dx * 0.3; x += Math.sign(x) * dx * 0.7; y -= dx * 0.3;
+    const dx = Math.max(0, hx - 0.07 - (Math.abs(x) + r));
+    r += dx * 0.15; x += Math.sign(x) * dx * 0.85; y -= dx * 0.15;
   }
+  /* no molar superior as duas cúspides de cada lado precisam se encostar: sem isso sobra um
+     vão entre elas até o corpo da coroa */
+  if (r < rMin) { y -= rMin - r; r = rMin; }
   return { ...c, c: [x, y, z], r };
 }
 export function aprofunda<S extends { a: V; b: V; r: number; desce?: boolean; face?: V }>(s: S, _hx: number, hz: number): S {
   const a: V = [s.a[0], s.a[1] - 0.06, s.a[2]];
-  const b: V = [s.b[0], s.b[1] - 0.06, s.b[2]];
-  if (!s.desce) return { ...s, a, b, r: s.r * 1.4 };
+  if (!s.desce) return { ...s, a, b: [s.b[0], s.b[1] - 0.06, s.b[2]], r: s.r * 1.4 };
+  /* na face livre o sulco é raso: só a ponta de dentro desce */
+  const b: V = [s.b[0], s.b[1] + 0.03, s.b[2]];
   /* o sulco que desce para uma face livre precisa atravessar a borda da coroa: se parasse
      dentro da parede, apareceria como um furo redondo em vez de um entalhe */
   const sz = Math.sign(b[2]) || 1;
   const face: V = [b[0], b[1], sz * (hz + 0.012)];
-  return { ...s, a, b: [b[0], b[1], sz * (hz + 0.07)], r: s.r * 1.4, face };
+  return { ...s, a, b: [b[0], b[1], sz * (hz + 0.07)], r: s.r * 1.15, face };
 }
 /** corpo da coroa dos molares: mais baixo que as cúspides e de cantos bem arredondados */
-export const blocoMolar = (c: { b: V; r: number }): No => { const rr = c.r + 0.06; return caixa([0, 0.285, 0], [c.b[0] + c.r - rr, 0.075, c.b[2] + c.r - rr], rr - 0.01); };
+export const blocoMolar = (c: { b: V; r: number }): No => {
+  /* uma parede alta em toda a volta, que chega perto dos vértices das cúspides, com uma bacia
+     escavada no centro: são as cristas marginais e a fossa central. Sem a parede, as faces
+     livres ficam divididas em gomos pelas esferas das cúspides. */
+  const rr = c.r + 0.02, hx = c.b[0] + c.r, hz = c.b[2] + c.r;
+  return cava(0.1, caixa([0, 0.37, 0], [hx - rr, 0.14, hz - rr], rr - 0.01), elipse([0, 0.85, 0], [hx * 0.6, 0.21, hz * 0.6]));
+};
 
 /* o sulco que separa duas cúspides e desce para a face é aberto por cima: três cápsulas
    empilhadas formam uma fenda, em vez de um túnel sob a união das cúspides */
 const sobe = (p: V, h: number): V => [p[0], p[1] + h, p[2]];
-const fenda = (s: { a: V; b: V; r: number }): No[] => [0, 0.1, 0.2].map((h) => capsula(sobe(s.a, h), sobe(s.b, h), s.r * (1 + h * 1.5)));
+const fenda = (s: { a: V; b: V; r: number }): No[] => [0, 0.1, 0.2].map((h) => capsula(sobe(s.a, h), sobe(s.b, h), s.r * (0.8 + h * 1.2)));
 /* um sulco que chega à face livre continua por ela, cada vez mais raso, até sumir no terço médio */
-const desceFace = (s: { b: V; r: number; face?: V }): No => { const p0 = s.face ?? s.b; return cone(p0, [p0[0], p0[1] - 0.3, p0[2] + Math.sign(p0[2]) * 0.035], s.r * 0.8, 0.004); };
+const desceFace = (s: { b: V; r: number; face?: V }): No => { const p0 = s.face ?? s.b; return cone(p0, [p0[0], p0[1] - 0.2, p0[2] + Math.sign(p0[2]) * 0.03], s.r * 0.5, 0.004); };
 
 export function molarSuperior(p: MolarSuperior): Dente {
   if (!p.coroa.oval) {
