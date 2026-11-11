@@ -15,6 +15,14 @@ uniform vec3 uFundo, uEsmalte, uDentina, uPolpa, uCemento, uTinta;
 uniform vec3 uCentro;    // centro e raio da esfera que envolve o dente
 uniform float uRaio;
 uniform float uChao;     // altura do chão, onde cai a sombra
+uniform int uReg;         // região da estrutura escolhida, pintada no dente: 0 nenhuma, 1 cúspide, 2 vertente lisa,
+                          // 3 vertente triturante, 4 face (pela direção), 5 terço da raiz, 6 face oclusal
+uniform int uRegI;        // qual cúspide, ou qual terço
+uniform vec3 uRegN;       // para onde a face está voltada
+uniform vec3 uAcento;     // a cor de destaque da página
+uniform float uTopo, uApice, uColo;
+uniform vec3 uCusp[5];
+uniform int uNCusp;
 uniform int uZero;        // sempre 0. Começar os laços nele impede o compilador de desenrolá-los e de copiar a
                           // função do dente em cada chamada; sem isso a compilação leva dezenas de segundos
 uniform float uInverte;  // -1 nos dentes superiores: a imagem é espelhada na vertical, com a coroa para baixo
@@ -127,6 +135,40 @@ vec3 tinge(vec3 p, vec3 rd, float px) {
     float c = jac(p);
     float naCoroa = smoothstep(c - 0.03, c + 0.06, p.y);
     vec3 base = mix(emLinear(uCemento), emLinear(uEsmalte), naCoroa);
+
+    // ---- a região da estrutura escolhida fica tingida, de borda suave ----
+    if (uReg != 0) {
+      float m = 0.0;
+      float alto = smoothstep(c + 0.36 * (uTopo - c), c + 0.5 * (uTopo - c), p.y); // metade oclusal da coroa
+      if (uReg <= 3) {
+        float perto1 = 1e3, perto2 = 1e3;
+        int qual = 0;
+        for (int i = uZero; i < uNCusp; i++) {
+          float d = distance(p, uCusp[i]);
+          if (d < perto1) { perto2 = perto1; perto1 = d; qual = i; } else if (d < perto2) perto2 = d;
+        }
+        if (uReg == 1) {
+          // a cúspide vai do vértice até onde começa a vizinha
+          m = alto * (qual == uRegI ? 1.0 : 0.0) * (uNCusp > 1 ? smoothstep(0.0, 0.014, (perto2 - perto1) * 0.5) : 1.0);
+        } else {
+          // do vértice para a face livre é a vertente lisa; do vértice para o sulco, a triturante
+          float cz = uCusp[qual].z;
+          float fora = smoothstep(-0.012, 0.012, sign(cz) * (p.z - cz));
+          // a lisa olha para a face livre; a triturante, para cima, dentro da face oclusal
+          m = alto * (uReg == 2 ? fora * smoothstep(0.05, 0.4, sign(cz) * n.z) : (1.0 - fora) * smoothstep(0.0, 0.35, n.y));
+        }
+      } else if (uReg == 4) {
+        m = naCoroa * smoothstep(0.30, 0.62, dot(n, uRegN));
+      } else if (uReg == 6) {
+        m = alto * smoothstep(0.35, 0.65, n.y);
+      } else if (uReg == 5) {
+        // terços da raiz: três partes iguais, em linha reta, do colo ao ápice
+        float t = clamp((uColo - p.y) / max(uColo - uApice, 0.01), 0.0, 1.0) * 3.0;
+        float k = float(uRegI);
+        m = (1.0 - naCoroa) * smoothstep(k - 0.03, k + 0.03, t) * (1.0 - smoothstep(k + 0.97, k + 1.03, t));
+      }
+      base = mix(base, emLinear(uAcento), 0.6 * m);
+    }
 
     // ---- textura: só aparece quando o pixel é menor que o detalhe, para não cintilar de longe ----
     float perto = smoothstep(0.0045, 0.0012, px);

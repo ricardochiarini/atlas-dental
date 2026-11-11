@@ -34,6 +34,15 @@ const uniformes = {
   uBase: { value: new THREE.Matrix3() },
   uFoco: { value: 3 },
   uZero: { value: 0 },
+  uReg: { value: 0 },
+  uRegI: { value: 0 },
+  uRegN: { value: new THREE.Vector3(0, 0, 1) },
+  uAcento: { value: new THREE.Color() },
+  uTopo: { value: 1 },
+  uApice: { value: -1 },
+  uColo: { value: 0 },
+  uCusp: { value: Array.from({ length: 5 }, () => new THREE.Vector3()) },
+  uNCusp: { value: 0 },
   uDesloc: { value: 0 },
   uPlano: { value: new THREE.Vector3(0, 0, 1) },
   uCorte: { value: 0.62 },
@@ -116,6 +125,7 @@ function leCores() {
   cor('--polpa', uniformes.uPolpa.value);
   cor('--cemento', uniformes.uCemento.value);
   cor('--fg', uniformes.uTinta.value);
+  cor('--ac', uniformes.uAcento.value);
   sujo = true;
 }
 
@@ -264,7 +274,34 @@ function pontoNoCorte(e: Estrutura, n: V, h: number): V | null {
   return melhor;
 }
 
+/* Algumas estruturas são regiões, não pontos: uma face, uma cúspide, uma vertente, um terço da
+   raiz. Quando uma delas é escolhida, a região inteira fica tingida no dente. */
+function pintaRegiao(e: Estrutura | null) {
+  const u = uniformes;
+  u.uReg.value = 0;
+  sujo = true;
+  const r = def.regioes;
+  if (!e || !r) return;
+  u.uTopo.value = r.topo;
+  u.uApice.value = r.apice;
+  u.uColo.value = def.jac.base;
+  u.uNCusp.value = Math.min(r.cuspides.length, 5);
+  r.cuspides.slice(0, 5).forEach((c, i) => u.uCusp.value[i].set(c.c[0], c.c[1], c.c[2]));
+  const face = (x: number, z: number) => { u.uReg.value = 4; u.uRegN.value.set(x, 0, z); };
+  const qual = r.cuspides.findIndex((c) => c.nome === e.nome);
+  if (e.id === 'face-v') face(0, 1);
+  else if (e.id === 'face-l') face(0, -1);
+  else if (e.id === 'face-m') face(-def.lado, 0);
+  else if (e.id === 'face-d') face(def.lado, 0);
+  else if (e.id === 'face-o') u.uReg.value = 6;
+  else if (e.id === 'vert-l' && r.cuspides.length) u.uReg.value = 2;
+  else if (e.id === 'vert-t' && r.cuspides.length) u.uReg.value = 3;
+  else if (e.id.startsWith('terco-')) { u.uReg.value = 5; u.uRegI.value = ['terco-c', 'terco-m', 'terco-a'].indexOf(e.id); }
+  else if (qual >= 0 && qual < 5) { u.uReg.value = 1; u.uRegI.value = qual; }
+}
+
 function fichaPadrao() {
+  pintaRegiao(null);
   $('#ficha-nome').textContent = '';
   $('#ficha-texto').textContent = 'Arraste o dente para girar, escolha um corte para ver o interior e toque num nome para ler a descrição.';
 }
@@ -276,6 +313,7 @@ function seleciona(id: string, moverCamera: boolean) {
   for (const x of rotulos) x.item.setAttribute('aria-current', String(x === r));
   $('#ficha-nome').textContent = r.e.nome;
   $('#ficha-texto').textContent = r.e.texto;
+  pintaRegiao(r.e);
 
   if (moverCamera) {
     defineGiro(false);

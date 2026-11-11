@@ -44,6 +44,7 @@ function espelha(def: Dente, fdi: number): Dente {
     forma: espelho(def.forma),
     polpa: espelho(def.polpa),
     centro: mx(def.centro),
+    regioes: def.regioes && { ...def.regioes, cuspides: def.regioes.cuspides.map((c) => ({ ...c, c: mx(c.c) })) },
     planos: def.planos.map((p) => ({ ...p, normal: mx(p.normal), vista: [-p.vista[0], p.vista[1]] })),
     /* as estruturas são calculadas no dente original e depois espelhadas, ponto a ponto */
     estruturas: (): Estrutura[] =>
