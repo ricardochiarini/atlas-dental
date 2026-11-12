@@ -305,10 +305,21 @@ function pintaRegiao(rot: Rotulo | null) {
   const noDente = (p: V) => modelo.desdobra(modelo.inclina(p));
   const face = (x: number, z: number, y0 = -1, y1 = 2) => { u.uReg.value = 4; u.uRegN.value.set(x, 0, z); u.uRegY.value.set(y0, y1); };
   const raiz = (t0: number, t1: number) => { u.uReg.value = 5; u.uRegY.value.set(t0, t1); };
-  const trechos = (segs: [V, V, number][]) => {
+  const trechos = (segs: [V, V, number][], reais = false) => {
     u.uReg.value = 7;
     u.uNSeg.value = Math.min(segs.length, 5);
-    segs.slice(0, 5).forEach(([a, b, raio], k) => { const A = noDente(a), B = noDente(b); u.uSegA.value[k].set(A[0], A[1], A[2], raio); u.uSegB.value[k].set(B[0], B[1], B[2]); });
+    segs.slice(0, 5).forEach(([a, b, raio], k) => { const A = reais ? a : noDente(a), B = reais ? b : noDente(b); u.uSegA.value[k].set(A[0], A[1], A[2], raio); u.uSegB.value[k].set(B[0], B[1], B[2]); });
+  };
+  /* Um trajeto sobre a superfície: cada ponto, descrito no dente reto, é levado até a pele do
+     dente na direção dada, e os pontos vizinhos são ligados. Assim a tinta acompanha o relevo. */
+  const naPele = (p: V, dir: V): V => modelo.assenta(modelo.inclina(p), dir).p;
+  const caminho = (linhas: V[][], dir: V, raio: number) => {
+    const segs: [V, V, number][] = [];
+    for (const pts of linhas) {
+      const s = pts.map((p) => naPele(p, dir));
+      for (let k = 0; k + 1 < s.length; k++) segs.push([s[k], s[k + 1], raio]);
+    }
+    trechos(segs, true);
   };
   /* área em volta dos pontos em que a estrutura foi marcada; esc alonga a área num eixo */
   const emVolta = (raio: number, esc: V = [1, 1, 1], juntos = true) => {
@@ -363,12 +374,41 @@ function pintaRegiao(rot: Rotulo | null) {
   else if (id === 'borda') { u.uReg.value = 11; u.uRegN.value.set(r.topo - 0.09, 0, 0); }
   /* crista triangular: do vértice de cada cúspide em direção ao centro da face oclusal */
   else if (id === 'crista-tri' && r.cuspides.length) trechos(r.cuspides.slice(0, 5).map((c): [V, V, number] => [[c.c[0], c.c[1] + c.r * 0.85, c.c[2]], [c.c[0] * 0.5, c.c[1] + c.r * 0.25, c.c[2] * 0.2], 0.07]));
+  /* cristas marginais dos posteriores: fecham a face oclusal por mesial e por distal, de vestibular a lingual */
+  else if ((id === 'crista-m' || id === 'crista-d') && !anterior) {
+    const x = (id === 'crista-m' ? -def.lado : def.lado) * (r.hx - 0.07);
+    caminho([[-0.55, -0.28, 0, 0.28, 0.55].map((k): V => [x, r.topo * 0.4, k * r.hz])], [0, 1, 0], 0.07);
+  }
+  /* canino: a crista vestibular e a lingual descem do vértice até o terço cervical */
+  else if (id === 'crista-v') caminho([[0.25, 0.45, 0.65, 0.82, 0.94].map((k): V => [-def.lado * 0.02, k * r.topo, 0])], [0, 0, 1], 0.06);
+  else if (id === 'crista-l') caminho([[0.34, 0.5, 0.66, 0.82, 0.94].map((k): V => [-def.lado * 0.02, k * r.topo, 0])], [0, 0, -1], 0.06);
+  /* canino: cada aresta vai do vértice até a área de contato daquele lado */
+  else if ((id === 'aresta-m' || id === 'aresta-d') && r.arestas) {
+    const m = id === 'aresta-m';
+    trechos([[[-def.lado * 0.03, r.topo - 0.03, 0], [(m ? -def.lado : def.lado) * r.hx * 0.95, r.topo * r.arestas[m ? 0 : 1], 0], 0.07]]);
+  }
+  /* incisivos: dois sulcos verticais na face vestibular, do terço médio à borda */
+  else if (id === 'sulcos-des') caminho([-1, 1].map((s) => [0.5, 0.72, 0.93].map((k): V => [s * r.hx * 0.3, k * r.topo, 0])), [0, 0, 1], 0.045);
+  /* a raiz de um dente multirradicular começa na furca; acima dela é tronco */
+  else if (id.startsWith('raiz-') && e.segs?.length) {
+    const furca = rotulos.find((x) => x.e.id === 'furca');
+    const yF = furca?.ancoras.length ? Math.max(...furca.ancoras.map((a) => a.p[1])) : null;
+    trechos(e.segs.map(([a, b, raio]): [V, V, number] => {
+      if (yF === null || a[1] <= yF || b[1] >= yF) return [a, b, raio];
+      const k = (a[1] - yF) / (a[1] - b[1]);
+      return [[a[0] + (b[0] - a[0]) * k, yF, a[2] + (b[2] - a[2]) * k], b, raio];
+    }));
+  }
+  else if (id.startsWith('sulco') && e.segs?.length && e.segs.every(([a, b]) => Math.abs(a[2]) < r.hz - 0.06 && Math.abs(b[2]) < r.hz - 0.06)) {
+    const dentro = (v: number, lim: number) => Math.max(-lim, Math.min(lim, v));
+    caminho(e.segs.slice(0, 2).map(([a, b]) => [0, 0.5, 1].map((k): V => [dentro(a[0] + (b[0] - a[0]) * k, r.hx - 0.05), r.topo * 0.4, dentro(a[2] + (b[2] - a[2]) * k, r.hz - 0.05)])), [0, 1, 0], 0.065);
+  }
   else if (e.segs?.length) trechos(e.segs);
   /* cristas marginais: nos posteriores correm de vestibular a lingual; nos anteriores, do colo à borda */
   else if (id === 'crista-m' || id === 'crista-d') emVolta(0.085, anterior ? [1, 0.3, 1] : [1, 1, 0.33]);
-  else if (id === 'crista-v' || id === 'crista-l') emVolta(0.075, [1, 0.2, 1]);
-  else if (id === 'sulcos-des') emVolta(0.04, [1, 0.15, 1], false);
   else if (id === 'fossa') emVolta(0.17, [1, 0.75, 1]);
+  /* sulco ao longo de cada face proximal da raiz: duas faixas compridas, uma de cada lado */
+  else if (id === 'sulco-raiz') emVolta(0.06, [1, 0.2, 1], false);
   else if (id.startsWith('contato-') || id.startsWith('angulo-') || id === 'furca' || id === 'forame' || id === 'forame-cego') emVolta(0.08);
   else emVolta(0.1);
 }

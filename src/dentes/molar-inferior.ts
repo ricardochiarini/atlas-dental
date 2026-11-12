@@ -153,7 +153,7 @@ export function molarInferior(p: MolarInferior): Dente {
         const meio = entre(s.a, s.b, s.desce ? 0.45 : 0.3);
         const sz = sinal(s.b[2] - s.a[2]);
         const externas: [V, V][] = s.desce ? [[meio, [0, 1, sz * 0.3]], [entre(s.a, s.b, 0.92), [0, 0.55, sz * 0.85]]] : [[meio, [0, 1, 0]], [entre(s.a, s.b, 0.72), [0, 1, 0]]];
-        return { id: s.id, nome: s.nome, grupo: 'Sulcos e fossetas', texto: s.texto, externas, segs: [[s.a, s.face ?? s.b, s.r * 2.2]] };
+        return { id: s.id, nome: s.nome, grupo: 'Sulcos e fossetas', texto: s.texto, externas, segs: [[s.a, s.face ?? s.b, Math.max(s.r * 2.2, 0.075)]] };
       }),
       ...(p.fossetaVestibular ? [{ id: 'fosseta-v', nome: 'Fosseta vestibular', grupo: 'Sulcos e fossetas', texto: 'Pequena depressão na face vestibular, onde termina o sulco mésio-vestibular. É um ponto frequente de cárie.', externas: [[[p.fossetaVestibular.c[0], p.fossetaVestibular.c[1], 0], [0, 0, 1]]] } as Estrutura] : []),
       { id: 'fosseta-c', nome: 'Fosseta central', grupo: 'Sulcos e fossetas', texto: 'Depressão no centro da face oclusal, no encontro do sulco mésio-distal com os sulcos que vêm das faces livres.', externas: [[[p.fosseta.c[0], 0.3, 0], [0, 1, 0]]] },
@@ -224,7 +224,7 @@ export function molarInferior(p: MolarInferior): Dente {
     cemento: 0.022,
     inclina: { x: incX, z: incZ, y0: Y0 },
     curva: { forca: p.curva, altura: ALTURA },
-    regioes: { topo: Math.max(...p.cuspides.map((c) => c.c[1] + c.r)), apice: Math.min(p.raizes.mesial.b[1], p.raizes.distal.b[1]) - 0.04, cuspides: p.cuspides.map((c) => ({ nome: c.nome, r: c.r, c: ((v: V): V => { const h = Math.max(v[1] - Y0, 0); return [v[0] + incX * h, v[1], v[2] + incZ * h]; })(c.c) })) },
+    regioes: { hx: p.coroa.b[0] + p.coroa.r, hz: p.coroa.b[2] + p.coroa.r, topo: Math.max(...p.cuspides.map((c) => c.c[1] + c.r)), apice: Math.min(p.raizes.mesial.b[1], p.raizes.distal.b[1]) - 0.04, cuspides: p.cuspides.map((c) => ({ nome: c.nome, r: c.r, c: ((v: V): V => { const h = Math.max(v[1] - Y0, 0); return [v[0] + incX * h, v[1], v[2] + incZ * h]; })(c.c) })) },
     centro: [0, -0.26, 0],
     raio: 1.34,
     chao: -1.46,

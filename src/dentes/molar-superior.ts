@@ -195,7 +195,7 @@ export function molarSuperior(p: MolarSuperior): Dente {
       ...p.sulcos.map((s): Estrutura => {
         const sz = sinal(s.b[2] - s.a[2]);
         const externas: [V, V][] = s.desce ? [[entre(s.a, s.b, 0.45), [0, 1, sz * 0.3]], [entre(s.a, s.b, 0.92), [0, 0.55, sz * 0.85]]] : [[entre(s.a, s.b, 0.35), [0, 1, 0]], [entre(s.a, s.b, 0.7), [0, 1, 0]]];
-        return { id: s.id, nome: s.nome, grupo: 'Sulcos e fossetas', texto: s.texto, externas, segs: [[s.a, s.face ?? s.b, s.r * 2.2]] };
+        return { id: s.id, nome: s.nome, grupo: 'Sulcos e fossetas', texto: s.texto, externas, segs: [[s.a, s.face ?? s.b, Math.max(s.r * 2.2, 0.075)]] };
       }),
       ...p.fossetas.map((f): Estrutura => ({ id: f.id, nome: f.nome, grupo: 'Sulcos e fossetas', texto: f.texto, externas: [[[f.c[0], 0.3, f.c[2]], [0, 1, 0]]] })),
 
@@ -256,7 +256,7 @@ export function molarSuperior(p: MolarSuperior): Dente {
     cemento: 0.022,
     inclina: { x: incX, z: incZ, y0: Y0 },
     curva: { forca: p.curva, altura: ALTURA },
-    regioes: { topo: Math.max(...p.cuspides.map((c) => c.c[1] + c.r)), apice: Math.min(...p.raizes.map((r) => r.b[1])) - 0.04, cuspides: p.cuspides.map((c) => ({ nome: c.nome, r: c.r, c: ((v: V): V => { const h = Math.max(v[1] - Y0, 0); return [v[0] + incX * h, v[1], v[2] + incZ * h]; })(c.c) })) },
+    regioes: { hx: p.coroa.b[0] + p.coroa.r, hz: p.coroa.b[2] + p.coroa.r, topo: Math.max(...p.cuspides.map((c) => c.c[1] + c.r)), apice: Math.min(...p.raizes.map((r) => r.b[1])) - 0.04, cuspides: p.cuspides.map((c) => ({ nome: c.nome, r: c.r, c: ((v: V): V => { const h = Math.max(v[1] - Y0, 0); return [v[0] + incX * h, v[1], v[2] + incZ * h]; })(c.c) })) },
     centro: [0, -0.26, superior ? -0.05 : 0],
     raio: 1.4,
     chao: superior ? 1.0 : -1.46, // nos superiores a sombra cai do lado da coroa, que aparece embaixo
