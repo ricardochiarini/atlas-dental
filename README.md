@@ -1,6 +1,10 @@
 # Atlas dental em WebGL
 
-Atlas de anatomia dental que roda no navegador: cada dente pode ser girado, aberto em três planos de corte e tem as estruturas nomeadas e descritas. Faz parte do laboratório de [ricardochiarini.com](https://ricardochiarini.com/lab).
+**[Abrir o atlas](https://ricardochiarini.com/atlas/)** · [Como foi feito](https://ricardochiarini.com/atlas-dental.html)
+
+[![O atlas mostrando o primeiro molar superior esquerdo com as estruturas nomeadas](docs/captura.jpg)](https://ricardochiarini.com/atlas/)
+
+Atlas de anatomia dental que roda no navegador: cada dente pode ser girado, aberto em três planos de corte e tem as estruturas nomeadas e descritas.
 
 **Não há modelo 3D.** Nenhuma malha, textura ou arquivo importado: cada dente é uma função matemática, avaliada em cada pixel por um shader.
 
@@ -59,6 +63,10 @@ Com isso, desenho e rótulos nunca saem de sincronia.
 npm install
 npm run dev
 ```
+
+## Licença
+
+Código aberto para leitura, como portfólio. Todos os direitos reservados: veja [LICENSE](LICENSE).
 
 ## Créditos
 
